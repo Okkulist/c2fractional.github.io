@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>C² Fractional Management — Quotation</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='28' font-size='28'>📊</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#f5f3f0}
+input:focus{outline:none;border-color:#333 !important}
+button{cursor:pointer}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script type="text/babel">
+const { useState, useMemo } = React;
+
+
+const PW = "aboshakraistheog";
+const RATE = 1200;
+const MIN_RETAINER = 100000;
+const REV = 120000000;
+const FX = 47;
+const M1_CAP = 160;          // Total Month 1 hours
+const M1_FIREFIGHT = 80;     // 50% → firefighting & negotiations
+
+const D = { finance:{l:"Finance & Accounting",c:"#1e40af",bg:"#eff6ff",bdr:"#bfdbfe"}, ops:{l:"Operations & Commercial",c:"#92400e",bg:"#fffbeb",bdr:"#fde68a"}, hr:{l:"HR & People",c:"#7c3aed",bg:"#faf5ff",bdr:"#ddd6fe"}, deals:{l:"Deal Negotiations",c:"#0f766e",bg:"#f0fdfa",bdr:"#99f6e4"} };
+const T = { quick:{l:"Quick Win",c:"#16653a",bg:"#f0fdf4",bdr:"#bbf7d0",tag:"#dcfce7",ico:"⚡"}, medium:{l:"Medium Win",c:"#a16207",bg:"#fefce8",bdr:"#fde68a",tag:"#fef9c3",ico:"🔧"}, moon:{l:"Moonshot",c:"#b91c1c",bg:"#fef2f2",bdr:"#fecaca",tag:"#fee2e2",ico:"🚀"} };
+const IMP = { high:{l:"High",c:"#dc2626",n:3}, med:{l:"Medium",c:"#ea580c",n:2}, low:{l:"Low",c:"#ca8a04",n:1} };
+// Priority categories — every task is tagged with its PRIMARY financial lever
+const PRIO = {
+  rev:{l:"Revenue",ico:"📈",c:"#059669",bg:"#ecfdf5",bdr:"#6ee7b7",tag:"#d1fae5",short:"REV"},
+  cost:{l:"Cost Reduction",ico:"✂️",c:"#dc2626",bg:"#fef2f2",bdr:"#fca5a5",tag:"#fee2e2",short:"COST"},
+  cash:{l:"Cash Collection",ico:"💵",c:"#1e40af",bg:"#eff6ff",bdr:"#93c5fd",tag:"#dbeafe",short:"CASH"}
+};
+// Sort order: revenue first (0), cost second (1), cash third (2)
+const PRIO_ORDER = {rev:0,cost:1,cash:2};
+
+// ═══ DETAILED TASKS ═══
+const tasks = [
+  // B1 — Financial Visibility & Controls
+  { id:1,b:"B1",name:"Consolidated P&L Report",dept:"finance",tier:"medium",hrs:10,w:[5,7],impact:"high",prio:"cost",
+    desc:"Build the first consolidated P&L across all branches and central prep. Scheduled for end of March — no opening stock exists, so we need a full month of controlled data before this is meaningful.",
+    pnl:"Creates measurement system. Identifies 5–15% profit variance between branches.",bs:"First accurate balance sheet baseline. Corrects retained earnings.",cf:"Identifies cash vs. accrual gaps. Reveals where cash is trapped.",
+    deps:[],enables:[2,7,8,14,15,16,17]},
+  { id:2,b:"B1",name:"P&L per Branch",dept:"finance",tier:"medium",hrs:10,w:[5,7],impact:"high",prio:"cost",
+    desc:"Break profitability to branch level. Requires consolidated P&L first — also end of March due to missing opening stock.",
+    pnl:"Exposes 5–15% profit variance. Enables targeted intervention on underperformers.",bs:"Identifies excess inventory and understated liabilities per branch.",cf:"Maps cash generation by location. Reveals cash-subsidised branches.",
+    deps:[1],enables:[15,24,27]},
+  { id:3,b:"B1",name:"Bank Statement Collection & Reconciliation",dept:"finance",tier:"quick",hrs:2,w:[1,1],impact:"med",prio:"cash",
+    desc:"Gather all bank records for full reconciliation. Unreconciled accounts hide embezzlement, duplicate payments, missing deposits.",
+    pnl:"Uncovers 1–3% unrecorded transactions distorting P&L.",bs:"Enables accurate cash position. Identifies unrecorded liabilities.",cf:"Foundation of cash flow accuracy. Gap between bank and book = pure risk.",
+    deps:[],enables:[4,6]},
+  { id:4,b:"B1",name:"Register All Transactions on System",dept:"finance",tier:"quick",hrs:6,w:[1,1],impact:"high",prio:"cash",
+    desc:"Force every transaction through accounting. Off-book activity is the fastest path to cash leakage.",
+    pnl:"Captures 2–5% unrecorded revenue. Eliminates invisible expenses.",bs:"Corrects AR/AP balances. Ensures all liabilities recognised.",cf:"Closes gap between actual and recorded cash flow.",
+    deps:[3],enables:[1,6,13]},
+  { id:5,b:"B1",name:"Fixed Assets Count (All Locations)",dept:"finance",tier:"quick",hrs:8,w:[1,2],impact:"med",prio:"cost",
+    desc:"Physically verify every asset against register. Phantom assets inflate BS; unregistered assets have no insurance.",
+    pnl:"Corrects depreciation by 5–15%. Removes ghost asset expenses.",bs:"Direct BS correction — aligns book value to physical reality.",cf:"Eliminates over-depreciation cash drag. Identifies disposal proceeds.",
+    deps:[],enables:[6]},
+  { id:6,b:"B1",name:"Financial Position Statement",dept:"finance",tier:"medium",hrs:8,w:[5,7],impact:"high",prio:"cash",
+    desc:"Definitive snapshot of what the business owns, owes, and is worth. Scheduled end of March — requires reconciled bank statements and registered transactions to be meaningful.",
+    pnl:"Validates P&L accuracy via BS cross-check.",bs:"This IS the balance sheet. First accurate snapshot — possibly ever.",cf:"Derives cash flow statement from BS movements. Shows free cash flow.",
+    deps:[1,3,4,5],enables:[17,19]},
+  { id:7,b:"B1",name:"2025 Budget vs. Actual Review",dept:"finance",tier:"quick",hrs:12,w:[1,2],impact:"med",prio:"cost",
+    desc:"Compare budget to actual for 2025. Variances reveal broken assumptions and uncontrolled spending. Doubled from standard 6h scope — given no prior reconciliation, this requires full reconstruction before comparison.",
+    pnl:"Identifies 3–7% controllable cost overruns.",bs:"Reveals capex over/under budget.",cf:"Compares cash budget to actual cash position.",
+    deps:[],enables:[15,16]},
+  { id:8,b:"B1",name:"Food Costing & Recipe Pricing Audit",dept:"finance",tier:"quick",hrs:16,w:[1,3],impact:"high",prio:"cost",
+    desc:"Visit every branch, measure actual recipes vs. system. The #1 margin lever — wrong recipe costs = wrong menu prices.",
+    pnl:"2–5 pp food cost reduction. On EGP 120M, that's EGP 2.4M–6M/year.",bs:"Corrects inventory valuation. Identifies obsolete stock.",cf:"Faster inventory turnover. Reduces cash trapped in excess stock 10–20%.",
+    deps:[],enables:[12,21,25]},
+
+  // B2 — Cost & Revenue Deep-Dive
+  { id:12,b:"B2",name:"Menu Costing Full Review",dept:"finance",tier:"medium",hrs:12,w:[2,4],impact:"high",prio:"cost",
+    desc:"Re-cost every menu item including sub-recipes, garnishes, packaging. Every penny of error multiplied by hundreds of covers daily.",
+    pnl:"2–4% gross margin improvement.",bs:"Corrects WIP inventory valuation.",cf:"Better margin = more cash per transaction. Compounds across daily volume.",
+    deps:[8],enables:[24,25]},
+  { id:13,b:"B2",name:"Full Stock Take (All Locations)",dept:"finance",tier:"medium",hrs:16,w:[2,3],impact:"high",prio:"cost",
+    desc:"Physical count of every item in every location. Gap between book and physical = pure loss: theft, waste, errors.",
+    pnl:"1–3% COGS reduction from shrinkage control. On EGP 45M purchases = EGP 450K–1.35M.",bs:"Direct inventory adjustment. May require write-down of damaged/obsolete stock.",cf:"Stops ongoing cash drain from pilferage. Each 1% shrinkage reduction = EGP 450K saved.",
+    deps:[4],enables:[14,16,23]},
+  { id:15,b:"B2",name:"Revenue Analysis 2025/26 per Branch",dept:"finance",tier:"medium",hrs:12,w:[7,9],impact:"high",prio:"rev",
+    desc:"Deep revenue trends by month, branch, category. Shows where revenue is growing, flat, or declining.",
+    pnl:"3–8% revenue uplift from demand alignment.",bs:"Informs asset allocation decisions (which branches deserve capex).",cf:"Reveals cash generation patterns by period. Enables better forecasting.",
+    deps:[1,2],enables:[17,26]},
+  { id:16,b:"B2",name:"Detailed Expenses per Branch",dept:"finance",tier:"medium",hrs:12,w:[7,9],impact:"high",prio:"cost",
+    desc:"Line-by-line expense breakdown per branch. Finds specific items out of control at specific locations.",
+    pnl:"5–12% cost reduction on outlier categories.",bs:"May reveal unrecorded liabilities.",cf:"Targets exact expense lines consuming excess cash.",
+    deps:[1,2],enables:[17,18]},
+  { id:20,b:"B2",name:"Purchases Analysis 2026 Monthly",dept:"finance",tier:"medium",hrs:8,w:[3,5],impact:"med",prio:"cost",
+    desc:"Analyse procurement patterns — over-ordering, supplier pricing creep, purchasing inefficiencies. Can begin from purchase records and invoices before consolidated P&L.",
+    pnl:"3–6% procurement savings.",bs:"Identifies excess inventory for liquidation.",cf:"Reduces cash tied in over-ordering.",
+    deps:[],enables:[17]},
+  { id:21,b:"B2",name:"Staff Meal Treatment & Policy",dept:"finance",tier:"medium",hrs:4,w:[3,4],impact:"low",prio:"cost",
+    desc:"Define staff meal rules and tracking. Without policy, staff meals are invisible cost adding 1–2% to food cost.",
+    pnl:"0.5–1.5% food cost reduction.",bs:"Reclassifies hidden cost. Improves inventory accuracy.",cf:"Reduces uncontrolled food consumption draining inventory cash.",
+    deps:[8],enables:[28]},
+
+  // B3 — Operational SOPs & Controls
+  { id:9,b:"B3",name:"Menu Review & Optimisation",dept:"ops",tier:"quick",hrs:8,w:[1,2],impact:"high",prio:"rev",
+    desc:"Analyse menu for dead items, cannibalisation, complexity. A bloated menu means 80% of items create cost without revenue.",
+    pnl:"2–4% revenue uplift. 1–2% food cost reduction from eliminating low-margin items.",bs:"Reduces raw material SKUs → lower inventory.",cf:"Faster inventory turns, fewer slow-moving items tying up cash.",
+    deps:[],enables:[8,10,22,24]},
+  { id:10,b:"B3",name:"Pricing Structure Review",dept:"ops",tier:"quick",hrs:8,w:[1,2],impact:"high",prio:"rev",
+    desc:"Audit every price against cost, competition, willingness-to-pay. 1% price increase = straight to EBITDA.",
+    pnl:"1–3% revenue increase. Direct EBITDA improvement, zero additional cost.",bs:"Pure income statement play. Improves retained earnings.",cf:"Immediate cash flow improvement — revenue uplift with no incremental outflow.",
+    deps:[9],enables:[22]},
+  { id:14,b:"B3",name:"Random Inspection SOP",dept:"finance",tier:"medium",hrs:6,w:[2,3],impact:"med",prio:"cost",
+    desc:"Formalise unannounced branch inspections — cash, inventory, food safety. Threat of inspection is as powerful as inspection itself.",
+    pnl:"1–3% reduction in shrinkage and cash discrepancies.",bs:"Protects inventory asset value.",cf:"Prevents ongoing cash leakage at branch level.",
+    deps:[13],enables:[16,17]},
+  { id:22,b:"B3",name:"End-of-Month Inspection SOP",dept:"finance",tier:"medium",hrs:6,w:[2,3],impact:"med",prio:"cash",
+    desc:"Standardise monthly close at branch level — counts, reconciliation, P&L inputs.",
+    pnl:"Improves monthly P&L accuracy by catching errors within 30 days.",bs:"Ensures BS updated monthly, not annually.",cf:"Monthly cash reconciliation catches discrepancies early.",
+    deps:[13],enables:[29]},
+  { id:23,b:"B3",name:"Closing Procedures SOP",dept:"ops",tier:"medium",hrs:8,w:[2,4],impact:"med",prio:"cash",
+    desc:"Standardise end-of-day: cash reconciliation, inventory logging, equipment, security.",
+    pnl:"0.5–1% revenue protection from cash handling.",bs:"Protects daily cash asset.",cf:"EGP 500/day cash discrepancy = EGP 1.8M/year across branches.",
+    deps:[13,14],enables:[29]},
+  { id:24,b:"B3",name:"Sales Mix Report per Branch",dept:"ops",tier:"quick",hrs:10,w:[1,2],impact:"high",prio:"rev",
+    desc:"Track what each branch sells, at what margin. Quick win if any POS reporting exists — shift to low-margin items raises blended food cost invisibly.",
+    pnl:"1–3% margin improvement via menu engineering.",bs:"Informs inventory stocking decisions.",cf:"Higher-margin sales mix = more cash per cover.",
+    deps:[],enables:[26]},
+  { id:25,b:"B3",name:"Menu Items Guide (Prep Standards)",dept:"ops",tier:"moon",hrs:30,w:[3,11],impact:"med",prio:"cost",
+    desc:"Full prep standards manual with photography of every plate, complete ingredient lists, step-by-step preparation instructions, and plating guides. This is a significant production effort — not a simple checklist. Tripled from standard scope to account for photo documentation and detailed write-ups per item.",
+    pnl:"1–2% food cost reduction from portion control.",bs:"Improves inventory predictability.",cf:"Tighter portions = less cash consumed per dish.",
+    deps:[8,12],enables:[]},
+  { id:26,b:"B3",name:"Marketing Review & Plan",dept:"ops",tier:"medium",hrs:12,w:[3,6],impact:"med",prio:"rev",
+    desc:"Audit marketing spend, channels, ROI. Redirect from ineffective to proven channels.",
+    pnl:"15–30% marketing ROI improvement.",bs:"Reclassifies marketing assets. Identifies wasted prepayments.",cf:"Reduces upfront marketing cash drain by eliminating low-ROI activities.",
+    deps:[15,24],enables:[]},
+  { id:27,b:"B3",name:"Discount Categories Audit & Policy",dept:"ops",tier:"medium",hrs:6,w:[3,4],impact:"med",prio:"rev",
+    desc:"Review all discount types and authority. Uncontrolled discounting is a top margin killer.",
+    pnl:"1–3% revenue recovery from capped discounting.",bs:"Pure revenue protection.",cf:"Recovered revenue flows directly to cash.",
+    deps:[2],enables:[]},
+  { id:28,b:"B3",name:"Staff Meal Menu & Punching System",dept:"ops",tier:"medium",hrs:6,w:[3,4],impact:"low",prio:"cost",
+    desc:"Dedicated staff menu and tracking system.",
+    pnl:"0.5–1% food cost reduction.",bs:"Corrects inventory accuracy.",cf:"Reduces invisible daily cash drain.",
+    deps:[21],enables:[]},
+
+  // B4 — Gap Analysis & Transformation
+  { id:17,b:"B4",name:"System Process Mapping & Gap Analysis",dept:"finance",tier:"moon",hrs:70,w:[5,11],impact:"high",prio:"cost",
+    desc:"The forensic deep-dive: map every process across finance, procurement, inventory, ops, HR — find every gap. 40 hrs interviews (8 people × 5 hrs), 25 hrs analysis, 5 hrs buffer. Interviews begin W5 in parallel with P&L preparation; financial analysis deepens as March data becomes available.",
+    pnl:"Identifies 10–20% total cost reduction opportunities.",bs:"Reveals hidden liabilities and unrecorded assets across all processes.",cf:"Maps every point where cash leaks, stalls, or disappears.",
+    deps:[1,2,6,13,14,15,16],enables:[18,19]},
+  { id:18,b:"B4",name:"Immediate Recommendations Report",dept:"finance",tier:"moon",hrs:10,w:[10,11],impact:"high",prio:"cost",
+    desc:"Top 15 fixes ranked by financial impact and ease. Each with quantified savings, cost, payback period, owner.",
+    pnl:"Top 5 alone worth 5–10% of cost base.",bs:"Identifies BS clean-up priorities.",cf:"Shows which fixes generate fastest cash return.",
+    deps:[17],enables:[19]},
+  { id:19,b:"B4",name:"Deep System Gap Remediation Plan",dept:"finance",tier:"moon",hrs:30,w:[9,12],impact:"high",prio:"cost",
+    desc:"Full transformation blueprint: phased implementation, cost-benefit, resources, timeline. The 12–24 month roadmap.",
+    pnl:"Targets 15–25% P&L improvement over 12–24 months.",bs:"Full BS restructuring recommendations.",cf:"12–24 month cash flow projection showing cumulative impact.",
+    deps:[17,18],enables:[]},
+
+  // B5 — Reporting & Sustainability
+  { id:29,b:"B5",name:"Daily/Weekly/Monthly Financial Reports",dept:"finance",tier:"moon",hrs:20,w:[8,11],impact:"high",prio:"cash",
+    desc:"Complete financial reporting cadence. Daily flash catches revenue drops on Day 1.",
+    pnl:"5–10% faster response to P&L deviations.",bs:"Monthly BS reporting ensures continuous accuracy.",cf:"Daily cash reporting. Weekly forecast accuracy: ±30% → ±5%.",
+    deps:[1,2,22],enables:[]},
+  { id:33,b:"B5",name:"Daily/Weekly/Monthly Ops Reports",dept:"ops",tier:"moon",hrs:16,w:[7,10],impact:"high",prio:"rev",
+    desc:"Operational reporting: covers, average check, complaints, wait times, waste. Leading indicators predict P&L.",
+    pnl:"3–8% improvement across operational P&L lines.",bs:"Validates inventory and asset utilisation.",cf:"Efficiency gains reduce daily cash burn.",
+    deps:[2,23,24],enables:[]},
+  { id:11,b:"B5",name:"HR Structure, Policies & JD Review",dept:"hr",tier:"quick",hrs:14,w:[1,2],impact:"med",prio:"cost",
+    desc:"Consolidate HR review: policies, job descriptions, org chart. Identifies role overlaps, ghost roles, structural waste.",
+    pnl:"5–10% labour reallocation opportunity.",bs:"Enables restructuring that reduces liability provisions.",cf:"Identifies overstaffing cash drain.",
+    deps:[],enables:[30,31]},
+  { id:30,b:"B5",name:"Salaries, Scale & Evaluations Review",dept:"hr",tier:"medium",hrs:14,w:[2,4],impact:"high",prio:"cost",
+    desc:"Benchmark compensation vs. market. Labour is 25–35% of F&B revenue — 5% efficiency is material.",
+    pnl:"3–8% labour cost optimisation.",bs:"May reveal unrecorded payroll liabilities.",cf:"Right-sizing payroll = immediate monthly cash savings.",
+    deps:[11],enables:[31,32]},
+  { id:31,b:"B5",name:"Policies & Procedures Manual",dept:"hr",tier:"moon",hrs:40,w:[6,11],impact:"high",prio:"cost",
+    desc:"The operating bible — standardises every process across all departments.",
+    pnl:"5–12% OpEx reduction from process standardisation.",bs:"Reduces contingent liabilities from compliance gaps.",cf:"Eliminates emergency spending and unplanned costs.",
+    deps:[17,11,30],enables:[32]},
+  { id:32,b:"B5",name:"Job Descriptions (All Roles)",dept:"hr",tier:"moon",hrs:30,w:[6,11],impact:"high",prio:"cost",
+    desc:"Role-specific JDs with KPIs and accountability. Clear JDs enable right-sizing — measurable output reveals redundancy.",
+    pnl:"3–6% labour cost reduction.",bs:"Supports restructuring provisions. Enables headcount planning.",cf:"Permanently lower monthly payroll outflow.",
+    deps:[11,30],enables:[]},
+
+  // B1 Add-on — Accrued Revenue Collection
+  { id:36,b:"B1",name:"Accrued Revenue Collection from Branches",dept:"finance",tier:"quick",hrs:8,w:[1,2],impact:"high",prio:"cash",
+    desc:"Identify and collect all accrued but uncollected revenues from branches — deferred sales, outstanding inter-branch settlements, and unremitted cash. This is immediate liquidity without new sales.",
+    pnl:"Recovers 1–4% of branch revenue previously unrecorded or unreported. Direct P&L uplift.",bs:"Converts accrued revenue asset into cash. Corrects AR balances.",cf:"Immediate cash injection. On EGP 120M revenue, even 1% recovery = EGP 1.2M cash.",
+    deps:[3,4],enables:[1,2,6]},
+
+  // B5 Add-on — Headcount Rationalisation
+  { id:37,b:"B5",name:"Redundant Headcount Reduction",dept:"hr",tier:"quick",hrs:10,w:[1,3],impact:"high",prio:"cost",
+    desc:"Identify and action redundant, duplicated, or unproductive roles across all locations. Labour is 25–35% of F&B revenue — right-sizing is the fastest cost lever with permanent monthly impact. Output: a list of roles to eliminate, restructure, or replace, with legal compliance pathway.",
+    pnl:"5–12% labour cost reduction on targeted roles. Each EGP 10K/mo role eliminated = EGP 120K/year.",bs:"Reduces accrued payroll liabilities. Improves retained earnings trajectory.",cf:"Permanent monthly cash saving — no capex required. Immediate impact from Month 1.",
+    deps:[11],enables:[30,31,32]},
+
+  // B6 — Deal Negotiations
+  { id:34,b:"B6",name:"Deal / Contract Analysis & Assessment",dept:"deals",tier:"medium",hrs:40,w:[1,4],impact:"high",prio:"cash",
+    desc:"Deep analysis: financial terms, obligations, risk allocation, benchmarking. Full due diligence on deal structure.",
+    pnl:"Prevents unfavourable terms costing 5–15% of deal value.",bs:"Assesses BS impact: lease obligations, guarantees, earnouts, capital.",cf:"Models full cash flow implications: upfront, ongoing, exit costs.",
+    deps:[],enables:[35]},
+  { id:35,b:"B6",name:"Deal Negotiation & Counter-Proposal",dept:"deals",tier:"medium",hrs:40,w:[5,8],impact:"high",prio:"cash",
+    desc:"Negotiation strategy, counter-proposals, protect financial interests. Includes prep, sessions, and documentation.",
+    pnl:"Improved terms protect long-term P&L.",bs:"Negotiated terms affect long-term liabilities. Minimises off-BS risk.",cf:"Better payment terms improve cash. Milestones align outflows with value.",
+    deps:[34],enables:[]},
+  { id:38,b:"B6",name:"Quick Commerce Renegotiation & New Deals",dept:"deals",tier:"quick",hrs:24,w:[1,4],impact:"high",prio:"rev",
+    desc:"Renegotiate existing quick commerce agreements (Talabat, Noon, etc.) — commission rates, exclusivity clauses, minimum order terms, settlement cycles. Simultaneously pursue and close new QC partnerships to expand delivery revenue. QC is a high-volume, high-visibility channel: every percentage point saved on commission on EGP 120M = EGP 1.2M.",
+    pnl:"1–3pp commission reduction on QC = EGP 1.2M–3.6M/year. New deals add incremental revenue with minimal fixed cost.",bs:"Reduces accrued platform liabilities. New deals may carry signing bonuses or subsidies.",cf:"Shorter settlement cycles inject cash faster. New deals bring upfront promotional cash from platforms.",
+    deps:[],enables:[35]},
+];
+
+// ═══ BUCKETS (link to tasks) ═══
+const buckets = [
+  { id:"B1",name:"Financial Visibility & Controls",color:"#1e40af",bg:"#eff6ff",bdr:"#bfdbfe",ico:"📊",tier:"quick",weeks:"1–7",
+    primaryPrio:"cost",
+    impactPills:[{p:"cash",v:"EGP 1.2M+",l:"Accrued collections"},{p:"cost",v:"EGP 3–8M",l:"Food & asset cost fix"},{p:"rev",v:"2–5%",l:"Unrecorded revenue"}],
+    desc:"Establish the financial scoreboard. Bank reconciliation, transaction registration, food cost audit, and budget review begin immediately (W1–2). Consolidated P&L, branch P&L, and financial position scheduled for end of March — no opening stock exists, so meaningful financials require a full month of controlled data." },
+  { id:"B2",name:"Cost & Revenue Deep-Dive",color:"#a16207",bg:"#fffbeb",bdr:"#fde68a",ico:"🔍",tier:"medium",weeks:"2–9",
+    primaryPrio:"cost",
+    impactPills:[{p:"cost",v:"EGP 450K–1.35M",l:"Shrinkage control"},{p:"cost",v:"5–12%",l:"Branch expense cuts"},{p:"rev",v:"3–8%",l:"Revenue uplift"}],
+    desc:"Stock take, menu costing, and purchases analysis begin immediately (W2–5). Deep revenue and expense analysis per branch follows once end-of-March P&L data is available (W7–9). Quantifies exactly where margin is being destroyed." },
+  { id:"B3",name:"Operational SOPs & Controls",color:"#16653a",bg:"#f0fdf4",bdr:"#bbf7d0",ico:"⚙️",tier:"medium",weeks:"1–11",
+    primaryPrio:"rev",
+    impactPills:[{p:"rev",v:"EGP 1.2–6M",l:"Pricing & menu uplift"},{p:"rev",v:"1–3%",l:"Discount recovery"},{p:"cash",v:"EGP 1.8M/yr",l:"Daily cash leakage stopped"}],
+    desc:"Translate financial findings into daily operational discipline. Sales mix report and menu/pricing reviews are immediate quick wins (W1–2). SOPs, inspections, and marketing follow (W2–6). The menu items prep guide — with full photography and detailed instructions per dish — runs W3–11 as a sustained production effort." },
+  { id:"B4",name:"System Gap Analysis & Transformation",color:"#b91c1c",bg:"#fef2f2",bdr:"#fecaca",ico:"🔬",tier:"moon",weeks:"5–12",
+    primaryPrio:"cost",
+    impactPills:[{p:"cost",v:"10–20%",l:"Total cost reduction identified"},{p:"cost",v:"15–25%",l:"P&L improvement roadmap"},{p:"cash",v:"12–24 mo",l:"Cash flow projection"}],
+    desc:"The forensic deep-dive: map every process, find every gap, build the full remediation blueprint. Stakeholder interviews begin W5 while financial data is being consolidated. Full analysis and recommendations follow once March financials are complete." },
+  { id:"B5",name:"Reporting & Sustainability",color:"#7c3aed",bg:"#faf5ff",bdr:"#ddd6fe",ico:"📈",tier:"moon",weeks:"1–11",
+    primaryPrio:"cost",
+    impactPills:[{p:"cost",v:"EGP 120K+/yr",l:"Per redundant headcount removed"},{p:"cost",v:"3–8%",l:"Labour optimisation"},{p:"rev",v:"3–8%",l:"Ops P&L improvement"}],
+    desc:"Reporting cadences, P&P manual, JDs, HR restructuring. The infrastructure that makes improvements permanent and creates accountability at every level." },
+  { id:"B6",name:"Deal Negotiations",color:"#0f766e",bg:"#f0fdfa",bdr:"#99f6e4",ico:"🤝",tier:"medium",weeks:"1–8",
+    primaryPrio:"rev",
+    impactPills:[{p:"rev",v:"EGP 1.2–3.6M/yr",l:"QC commission savings"},{p:"cash",v:"Faster",l:"Settlement cycles"},{p:"cash",v:"5–15%",l:"Deal value protected"}],
+    desc:"Separate parallel track: counter-party deal analysis and negotiation. Month 1 = due diligence & risk mapping. Month 2 = negotiation strategy & term sheet." },
+];
+
+// ═══ SUCCESS FEE MILESTONES ═══
+const milestoneFees = [
+  { id:"S1",milestone:"EBITDA reaches breakeven (0%)",current:"Negative EBITDA",target:"0% EBITDA margin",saving:"EGP 2.4M–6M (depending on current deficit)",fee:300000,feeLabel:"EGP 300K",color:"#16653a",icon:"🎯",how:"Monthly P&L shows EBITDA ≥ 0 for 2 consecutive months, verified jointly." },
+  { id:"S2",milestone:"EBITDA reaches 5% of revenue",current:"0% EBITDA",target:"5% = EGP 6M/year",saving:"EGP 6M annual profit created",fee:500000,feeLabel:"EGP 500K",color:"#1e40af",icon:"📈",how:"Trailing 3-month average EBITDA ≥ 5% of revenue, verified from audited P&L." },
+  { id:"S3",milestone:"EBITDA reaches 10% of revenue",current:"5% EBITDA",target:"10% = EGP 12M/year",saving:"EGP 6M additional annual profit",fee:750000,feeLabel:"EGP 750K",color:"#7c3aed",icon:"🚀",how:"Trailing 3-month average EBITDA ≥ 10%. This is the well-run F&B benchmark." },
+  { id:"S4",milestone:"Food cost reduced by ≥ 2pp",current:"Est. 36–40%",target:"34–38% or lower",saving:"Each point = EGP 1.2M/year on EGP 120M",fee:200000,feeLabel:"EGP 200K/point",color:"#a16207",icon:"🍽",how:"Trailing 3-month average food cost % vs. Month 1 baseline. Fee per point achieved." },
+  { id:"S5",milestone:"Revenue recovery (off-book captured)",current:"Unknown leakage",target:"Captured & recorded",saving:"Typically 2–5% of revenue = EGP 2.4M–6M",fee:0,feeLabel:"3% of recovered",color:"#dc2626",icon:"💰",how:"Total verified unrecorded revenue identified through reconciliation. One-time fee." },
+  { id:"S6",milestone:"Shrinkage reduced below 1.5%",current:"Est. 3–5%",target:"≤ 1.5% of purchases",saving:"1.5% on ~EGP 45M = EGP 675K",fee:0,feeLabel:"5% of savings",color:"#be185d",icon:"📦",how:"Pre-engagement shrinkage (first stock take) vs. Month 6 stock take." },
+];
+
+const marketComp = [
+  { provider:"Big 4 Advisory (Deloitte / EY)",monthly:"EGP 450K–750K",total:"EGP 2.7M–4.5M",success:"None",verdict:"Overkill for single-brand F&B. Generic frameworks. You pay for the brand.",score:2 },
+  { provider:"Regional F&B Consultancy",monthly:"EGP 150K–300K",total:"EGP 450K–900K",success:"Rare (5–10%)",verdict:"Strong on concept/menu but weak on financial controls and system gap analysis.",score:3 },
+  { provider:"Freelance F&B Consultant (Egypt)",monthly:"EGP 120K–200K",total:"EGP 240K–600K",success:"None",verdict:"Expensive per output. No financial depth — no P&L, no bank reconciliation, no gap analysis.",score:2 },
+  { provider:"Fractional CFO (International)",monthly:"EGP 140K–470K",total:"EGP 1.7M–5.6M/yr",success:"Rare (0–5%)",verdict:"Strong finance but zero F&B ops. Won't audit recipes or run stock takes.",score:2 },
+  { provider:"C² Fractional Management",monthly:"EGP 192K (M1) → 100K+",total:"EGP 700K–750K",success:"EBITDA milestones",verdict:"Full-scope: finance + ops + HR + gap analysis + deals. M1 includes 80h firefighting + 80h structured deliverables. Success fees only on verified P&L improvement.",score:5 },
+];
+
+// ═══ REQUIREMENTS ═══
+const requirements = [
+  { item:"Full access to accounting system & chart of accounts",who:"CFO / Finance team",due:"Day 1",critical:true },
+  { item:"Bank statements — all accounts, last 24 months",who:"CFO / Finance team",due:"Day 1",critical:true },
+  { item:"All supplier contracts & outstanding invoices",who:"Procurement lead",due:"Day 1",critical:true },
+  { item:"POS sales data export — all branches, last 12 months",who:"IT / Branch managers",due:"Day 1",critical:true },
+  { item:"Payroll records & org chart (all entities)",who:"HR lead",due:"Day 1",critical:true },
+  { item:"All existing deal contracts (QC platforms, partners, leases)",who:"Legal / Management",due:"Day 1",critical:true },
+  { item:"Branch manager availability for stock take (2–3 hrs each)",who:"Branch managers",due:"Week 1–2",critical:true },
+  { item:"Food costing system access or raw recipe data",who:"Kitchen / Ops lead",due:"Week 1",critical:true },
+  { item:"Fixed asset register (or best available list)",who:"Finance team",due:"Week 1",critical:false },
+  { item:"2025 budget file (Excel or system export)",who:"CFO",due:"Week 1",critical:false },
+  { item:"All inter-branch settlement records & cash transfer logs",who:"Finance team",due:"Week 1",critical:false },
+  { item:"HR files: contracts, job grades, evaluation history",who:"HR lead",due:"Week 2",critical:false },
+  { item:"Marketing spend breakdown & campaign history",who:"Marketing / Management",due:"Week 2",critical:false },
+  { item:"Dedicated internal point-of-contact (min. 10 hrs/week availability)",who:"Management",due:"Ongoing",critical:true },
+];
+
+const WEEKS=[1,2,3,4,5,6,7,8,9,10,11,12];
+const mono="'DM Mono',monospace",sans="'DM Sans','Segoe UI',sans-serif",disp="'Outfit',sans-serif";
+
+// ═══ COMPUTE MONTHLY PRICING ═══
+function computeMonthly(taskList) {
+  const months=[{w:[1,4],label:"Month 1",wks:"W1–W4"},{w:[5,8],label:"Month 2",wks:"W5–W8"},{w:[9,12],label:"Month 3",wks:"W9–W12"}];
+  return months.map((m,mi)=>{
+    const hrs=taskList.reduce((sum,t)=>{
+      const span=t.w[1]-t.w[0]+1; let ov=0;
+      for(let w=m.w[0];w<=m.w[1];w++) if(w>=t.w[0]&&w<=t.w[1]) ov++;
+      return sum+(t.hrs*ov/span);
+    },0);
+    const roundH=Math.round(hrs);
+    // Month 1: 160h total cap → 80h firefighting + up to 80h deliverables
+    const deliverableHrs = mi===0 ? Math.min(roundH, M1_CAP - M1_FIREFIGHT) : roundH;
+    const firefightHrs = mi===0 ? M1_FIREFIGHT : 0;
+    const totalHrs = mi===0 ? M1_CAP : roundH;
+    const computed=totalHrs*RATE;
+    const retainer=Math.max(computed,MIN_RETAINER);
+    const tks=taskList.filter(t=>{for(let w=m.w[0];w<=m.w[1];w++) if(w>=t.w[0]&&w<=t.w[1]) return true; return false;});
+    return {...m,hrs:totalHrs,deliverableHrs,firefightHrs,computed,retainer,tasks:tks,isFloor:computed<MIN_RETAINER};
+  });
+}
+
+// Priority sort: rev(0) → cost(1) → cash(2), then high impact first, quick wins first
+function prioSort(a,b){
+  if(PRIO_ORDER[a.prio]!==PRIO_ORDER[b.prio]) return PRIO_ORDER[a.prio]-PRIO_ORDER[b.prio];
+  const impOrd={high:0,med:1,low:2},tierOrd={quick:0,medium:1,moon:2};
+  if(impOrd[a.impact]!==impOrd[b.impact]) return impOrd[a.impact]-impOrd[b.impact];
+  return tierOrd[a.tier]-tierOrd[b.tier];
+}
+
+const App = function App(){
+  const [authed,setAuthed]=useState(false),[pw,setPw]=useState(""),[pwErr,setPwErr]=useState(false);
+  const [view,setView]=useState("overview"),[expBucket,setExpBucket]=useState(null),[expTask,setExpTask]=useState(null),[expFee,setExpFee]=useState(null);
+
+  const opsTasks=useMemo(()=>tasks.filter(t=>t.b!=="B6"),[]);
+  const dealTasks=useMemo(()=>tasks.filter(t=>t.b==="B6"),[]);
+  const opsMonthly=useMemo(()=>computeMonthly(opsTasks),[]);
+  const dealMonthly=useMemo(()=>computeMonthly(dealTasks),[]);
+  const opsTotal=opsMonthly.reduce((s,m)=>s+m.retainer,0);
+  const dealTotal=dealMonthly.filter(m=>m.hrs>0).reduce((s,m)=>s+m.retainer,0);
+  const grandTotal=opsTotal+dealTotal;
+
+  const handleLogin=()=>{if(pw===PW){setAuthed(true);setPwErr(false)}else setPwErr(true)};
+
+  if(!authed) return(
+    <div style={{fontFamily:sans,background:"#f5f3f0",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+      <div style={{textAlign:"center",maxWidth:380}}>
+        <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:3,marginBottom:24}}>
+          <span style={{fontFamily:disp,fontSize:38,fontWeight:300,color:"#333"}}>C</span><span style={{fontFamily:disp,fontSize:26,fontWeight:300,color:"#333",position:"relative",top:-10}}>^</span><span style={{fontFamily:disp,fontSize:38,fontWeight:300,color:"#333"}}>2</span>
+          <div style={{width:1,height:28,background:"#ccc",margin:"0 10px"}}/><span style={{fontFamily:disp,fontSize:11,color:"#999",letterSpacing:4,textTransform:"uppercase"}}>Fractional Management</span>
+        </div>
+        <p style={{fontSize:13,color:"#888",marginBottom:28}}>Abou Shakra — Confidential Quotation</p>
+        <div style={{background:"#fff",borderRadius:12,padding:"28px 24px",boxShadow:"0 1px 4px rgba(0,0,0,0.06)",border:"1px solid #e5e1dc"}}>
+          <div style={{fontFamily:mono,fontSize:10,color:"#999",letterSpacing:1.5,marginBottom:12}}>ENTER PASSWORD</div>
+          <input type="password" value={pw} onChange={e=>{setPw(e.target.value);setPwErr(false)}} onKeyDown={e=>e.key==="Enter"&&handleLogin()} placeholder="••••••••••" style={{width:"100%",padding:"12px 14px",border:pwErr?"1.5px solid #dc2626":"1.5px solid #ddd",borderRadius:8,fontSize:14,fontFamily:mono,outline:"none",background:"#fafaf8",boxSizing:"border-box"}}/>
+          {pwErr&&<div style={{color:"#dc2626",fontSize:12,marginTop:6}}>Incorrect password</div>}
+          <button onClick={handleLogin} style={{width:"100%",marginTop:14,padding:"11px",background:"#333",color:"#fff",border:"none",borderRadius:8,fontSize:13,fontWeight:700,cursor:"pointer",fontFamily:sans}}>Access Dashboard</button>
+        </div>
+        <p style={{fontFamily:mono,fontSize:9,color:"#bbb",marginTop:16}}>QT-AS-2026-001 · Confidential</p>
+      </div>
+    </div>
+  );
+
+  // ═══ TASK CARD ═══
+  const TaskCard=({t})=>{
+    const tier=T[t.tier],dept=D[t.dept],imp=IMP[t.impact],pr=PRIO[t.prio],isOpen=expTask===t.id;
+    const depT=t.deps.map(d=>tasks.find(x=>x.id===d)).filter(Boolean);
+    const enT=t.enables.map(d=>tasks.find(x=>x.id===d)).filter(Boolean);
+    return(
+      <div onClick={()=>setExpTask(isOpen?null:t.id)} style={{background:"#fff",border:isOpen?`1.5px solid ${dept.c}40`:"1px solid #eee",borderRadius:8,padding:"9px 12px",cursor:"pointer",borderLeft:`3px solid ${pr.c}`,marginBottom:3}}>
+        <div style={{display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontFamily:mono,fontSize:9,color:"#ccc",width:18,textAlign:"right",flexShrink:0}}>#{t.id}</span>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:11.5,fontWeight:700,color:"#222"}}>{t.name}</div>
+            <div style={{display:"flex",gap:4,marginTop:2,alignItems:"center",flexWrap:"wrap"}}>
+              <span style={{fontFamily:mono,fontSize:7.5,color:pr.c,background:pr.tag,padding:"1px 5px",borderRadius:2,fontWeight:700}}>{pr.ico} {pr.short}</span>
+              <span style={{fontFamily:mono,fontSize:8,color:tier.c,background:tier.tag,padding:"1px 5px",borderRadius:2}}>{tier.ico} {tier.l}</span>
+              <span style={{fontFamily:mono,fontSize:8,color:"#999"}}>W{t.w[0]}{t.w[1]!==t.w[0]?`–${t.w[1]}`:""} · {t.hrs}h · EGP {(t.hrs*RATE).toLocaleString()}</span>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:2,flexShrink:0}}>{[1,2,3].map(i=><div key={i} style={{width:3,height:9,borderRadius:1,background:i<=imp.n?imp.c:"#ddd"}}/>)}</div>
+          <span style={{fontSize:9,color:"#bbb",transform:isOpen?"rotate(180deg)":"",transition:"0.15s"}}>▾</span>
+        </div>
+        {isOpen&&<div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #f0f0ee"}} onClick={e=>e.stopPropagation()}>
+          <p style={{fontSize:11,color:"#555",lineHeight:1.6,margin:"0 0 8px",paddingLeft:24}}>{t.desc}</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:4,paddingLeft:24,marginBottom:6}}>
+            <div style={{background:"#eff6ff",borderRadius:5,padding:"6px 8px",border:"1px solid #dbeafe"}}>
+              <div style={{fontFamily:mono,fontSize:7,color:"#1e40af",letterSpacing:1,marginBottom:2}}>📊 P&L</div>
+              <div style={{fontSize:9.5,color:"#1e40af",lineHeight:1.5}}>{t.pnl}</div>
+            </div>
+            <div style={{background:"#f0fdf4",borderRadius:5,padding:"6px 8px",border:"1px solid #bbf7d0"}}>
+              <div style={{fontFamily:mono,fontSize:7,color:"#16653a",letterSpacing:1,marginBottom:2}}>🏦 BAL. SHEET</div>
+              <div style={{fontSize:9.5,color:"#16653a",lineHeight:1.5}}>{t.bs}</div>
+            </div>
+            <div style={{background:"#fefce8",borderRadius:5,padding:"6px 8px",border:"1px solid #fde68a"}}>
+              <div style={{fontFamily:mono,fontSize:7,color:"#a16207",letterSpacing:1,marginBottom:2}}>💵 CASH FLOW</div>
+              <div style={{fontSize:9.5,color:"#a16207",lineHeight:1.5}}>{t.cf}</div>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,paddingLeft:24}}>
+            <div style={{background:"#fafaf8",borderRadius:5,padding:"5px 8px",border:"1px solid #eee"}}>
+              <div style={{fontFamily:mono,fontSize:7,color:"#999",letterSpacing:1,marginBottom:2}}>⬆ DEPENDS ON ({depT.length})</div>
+              {depT.length===0?<div style={{fontSize:9,color:"#ccc"}}>No dependencies</div>:
+                depT.map(d=><div key={d.id} style={{fontSize:9,color:"#666"}}>#{d.id} {d.name}</div>)}
+            </div>
+            <div style={{background:"#eff6ff",borderRadius:5,padding:"5px 8px",border:"1px solid #dbeafe"}}>
+              <div style={{fontFamily:mono,fontSize:7,color:"#1e40af",letterSpacing:1,marginBottom:2}}>⬇ ENABLES ({enT.length})</div>
+              {enT.length===0?<div style={{fontSize:9,color:"#93c5fd"}}>Terminal deliverable</div>:
+                enT.map(d=><div key={d.id} style={{fontSize:9,color:"#1e40af"}}>#{d.id} {d.name}</div>)}
+            </div>
+          </div>
+        </div>}
+      </div>
+    );
+  };
+
+  return(
+    <div style={{fontFamily:sans,background:"#f5f3f0",color:"#333",minHeight:"100vh"}}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+      {/* HEADER */}
+      <div style={{background:"#fff",borderBottom:"1px solid #e5e1dc",padding:"16px 24px 12px"}}>
+        <div style={{maxWidth:1060,margin:"0 auto",display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
+          <div>
+            <div style={{display:"flex",alignItems:"center",gap:3,marginBottom:6}}>
+              <span style={{fontFamily:disp,fontSize:22,fontWeight:300}}>C</span><span style={{fontFamily:disp,fontSize:15,fontWeight:300,position:"relative",top:-5}}>^</span><span style={{fontFamily:disp,fontSize:22,fontWeight:300}}>2</span>
+              <div style={{width:1,height:16,background:"#ddd",margin:"0 6px"}}/><span style={{fontFamily:disp,fontSize:9,color:"#999",letterSpacing:3,textTransform:"uppercase"}}>Fractional Management</span>
+            </div>
+            <h1 style={{fontFamily:disp,fontSize:18,fontWeight:700,color:"#1a1a1a",margin:"0 0 2px"}}>Abou Shakra — F&B Financial Turnaround</h1>
+            <p style={{fontFamily:mono,fontSize:9.5,color:"#aaa",margin:0}}>QT-AS-2026-001 · Feb 2026 · Valid 30 days</p>
+          </div>
+          <div style={{textAlign:"right"}}>
+            <div style={{fontFamily:mono,fontSize:8,color:"#bbb",letterSpacing:1}}>ANNUAL REVENUE</div>
+            <div style={{fontFamily:disp,fontSize:22,fontWeight:800,lineHeight:1}}>EGP 120M</div>
+            <div style={{fontFamily:mono,fontSize:9,color:"#dc2626",fontWeight:600}}>Current EBITDA: Negative</div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{maxWidth:1060,margin:"0 auto",padding:"14px 24px"}}>
+        <div style={{display:"flex",gap:2,marginBottom:14,background:"#fff",borderRadius:7,padding:3,width:"fit-content",border:"1px solid #e5e1dc",flexWrap:"wrap"}}>
+          {[["overview","Overview"],["buckets","Engagement Buckets"],["timeline","Timeline"],["pricing","Monthly Pricing"],["success","Success Fees"],["market","Market Comparison"],["reqs","Requirements"]].map(([k,l])=>(
+            <button key={k} onClick={()=>setView(k)} style={{fontFamily:sans,padding:"5px 11px",borderRadius:5,border:"none",background:view===k?"#333":"transparent",color:view===k?"#fff":"#999",fontSize:10.5,fontWeight:700,cursor:"pointer"}}>{l}</button>
+          ))}
+        </div>
+
+        {/* ═══ OVERVIEW ═══ */}
+        {view==="overview"&&<div>
+          <div style={{background:"#fff",border:"1px solid #fecaca",borderLeft:"4px solid #dc2626",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
+            <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#dc2626",marginBottom:4}}>The Situation</div>
+            <div style={{fontSize:12,color:"#555",lineHeight:1.7}}>Abou Shakra generates <strong>EGP 120M</strong> in annual revenue but operates at <strong>negative EBITDA</strong>. Revenue is not the problem — financial controls, cost visibility, and operational discipline are. This engagement moves EBITDA from negative to <strong>+10%</strong>, creating <strong>EGP 12M+</strong> in annual profit.</div>
+          </div>
+          <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderLeft:"4px solid #dc2626",borderRadius:8,padding:"12px 16px",marginBottom:12,display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
+            <div>
+              <div style={{fontFamily:mono,fontSize:8,color:"#dc2626",letterSpacing:1,marginBottom:3}}>🔥 MONTH 1 TOTAL HOURS</div>
+              <div style={{fontFamily:disp,fontSize:20,fontWeight:800,color:"#dc2626"}}>160h</div>
+              <div style={{fontFamily:mono,fontSize:8.5,color:"#888"}}>Hard cap — full availability</div>
+            </div>
+            <div>
+              <div style={{fontFamily:mono,fontSize:8,color:"#dc2626",letterSpacing:1,marginBottom:3}}>⚡ FIREFIGHTING (50%)</div>
+              <div style={{fontFamily:disp,fontSize:20,fontWeight:800,color:"#dc2626"}}>80h</div>
+              <div style={{fontFamily:mono,fontSize:8.5,color:"#888"}}>Suppliers · Tax · Customers · Partners</div>
+            </div>
+            <div>
+              <div style={{fontFamily:mono,fontSize:8,color:"#1e40af",letterSpacing:1,marginBottom:3}}>📋 DELIVERABLES (50%)</div>
+              <div style={{fontFamily:disp,fontSize:20,fontWeight:800,color:"#1e40af"}}>80h</div>
+              <div style={{fontFamily:mono,fontSize:8.5,color:"#888"}}>Revenue → Cost → Cash priority</div>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:6,marginBottom:14}}>
+            {[{l:"Buckets",v:"6",s:"5 ops + 1 deal"},{l:"Tasks",v:String(tasks.length),s:"Detailed deliverables"},{l:"M1 Cap",v:"160h",s:"80h firefighting + 80h work"},{l:"Retainer",v:"192K",s:"EGP/mo Month 1"},{l:"Target",v:"10%+",s:"EBITDA margin"}].map((s,i)=>(
+              <div key={i} style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"10px 12px"}}>
+                <div style={{fontFamily:mono,fontSize:8,color:"#aaa",letterSpacing:1,marginBottom:3}}>{s.l}</div>
+                <div style={{fontFamily:disp,fontSize:20,fontWeight:800,lineHeight:1}}>{s.v}</div>
+                <div style={{fontFamily:mono,fontSize:8.5,color:"#bbb",marginTop:2}}>{s.s}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,marginBottom:14}}>
+            {buckets.filter(b=>b.id!=="B6").slice(0,3).map(b=>{const bt=tasks.filter(t=>t.b===b.id);const ti=T[b.tier];
+              return <div key={b.id} style={{background:"#fff",border:`1px solid ${b.bdr}`,borderLeft:`4px solid ${b.color}`,borderRadius:8,padding:"12px 14px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                  <span style={{fontSize:16}}>{b.ico}</span>
+                  <span style={{fontFamily:mono,fontSize:8,color:ti.c,background:ti.tag,padding:"1px 5px",borderRadius:3}}>{ti.l}</span>
+                </div>
+                <div style={{fontFamily:disp,fontSize:12,fontWeight:700,color:"#222",marginBottom:2}}>{b.name}</div>
+                <div style={{fontFamily:mono,fontSize:9,color:"#999"}}>{bt.length} tasks · {bt.reduce((s,t)=>s+t.hrs,0)}h · Wk {b.weeks}</div>
+              </div>;
+            })}
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6,marginBottom:14}}>
+            {[buckets[3],buckets[4],buckets[5]].map(b=>{const bt=tasks.filter(t=>t.b===b.id);const ti=T[b.tier];
+              return <div key={b.id} style={{background:"#fff",border:`1px solid ${b.bdr}`,borderLeft:`4px solid ${b.color}`,borderRadius:8,padding:"12px 14px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                  <span style={{fontSize:16}}>{b.ico}</span>
+                  <span style={{fontFamily:mono,fontSize:8,color:ti.c,background:ti.tag,padding:"1px 5px",borderRadius:3}}>{ti.l}</span>
+                </div>
+                <div style={{fontFamily:disp,fontSize:12,fontWeight:700,color:"#222",marginBottom:2}}>{b.name}</div>
+                <div style={{fontFamily:mono,fontSize:9,color:"#999"}}>{bt.length} tasks · {bt.reduce((s,t)=>s+t.hrs,0)}h · Wk {b.weeks}</div>
+              </div>;
+            })}
+          </div>
+          {/* Pricing preview */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:6}}>
+            {opsMonthly.map((m,i)=>(
+              <div key={i} style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"12px 14px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                  <span style={{fontFamily:disp,fontSize:13,fontWeight:700}}>{m.label}</span>
+                  <span style={{fontFamily:mono,fontSize:8.5,color:"#aaa"}}>{m.wks}</span>
+                </div>
+                <div style={{fontFamily:disp,fontSize:20,fontWeight:800}}>EGP {m.retainer.toLocaleString()}</div>
+                <div style={{fontFamily:mono,fontSize:9,color:"#bbb"}}>{m.hrs}h × EGP {RATE.toLocaleString()} = EGP {m.computed.toLocaleString()}{m.isFloor?" → 100K min":""}</div>
+              </div>
+            ))}
+          </div>
+        </div>}
+
+        {/* ═══ BUCKETS ═══ */}
+        {view==="buckets"&&<div>
+          {/* Priority legend */}
+          <div style={{display:"flex",gap:6,marginBottom:12,flexWrap:"wrap"}}>
+            {Object.entries(PRIO).map(([k,p])=>(
+              <div key={k} style={{display:"flex",alignItems:"center",gap:5,padding:"5px 10px",background:p.bg,border:`1px solid ${p.bdr}`,borderRadius:6}}>
+                <span style={{fontSize:11}}>{p.ico}</span>
+                <span style={{fontFamily:mono,fontSize:8.5,color:p.c,fontWeight:700}}>{p.l}</span>
+                <span style={{fontFamily:mono,fontSize:8,color:p.c,opacity:0.7}}>— tasks sorted by this order within each bucket</span>
+              </div>
+            ))}
+          </div>
+          <p style={{fontSize:11.5,color:"#666",margin:"0 0 12px"}}>Tasks within each bucket are sorted: Revenue generators first → Cost reducers second → Cash collectors third. Click any bucket to expand.</p>
+          {buckets.map(b=>{
+            const bt=tasks.filter(t=>t.b===b.id).slice().sort(prioSort);
+            const ti=T[b.tier],isOpen=expBucket===b.id;
+            const bh=bt.reduce((s,t)=>s+t.hrs,0);
+            // Group tasks by prio
+            const groups=[{key:"rev",tasks:bt.filter(t=>t.prio==="rev")},{key:"cost",tasks:bt.filter(t=>t.prio==="cost")},{key:"cash",tasks:bt.filter(t=>t.prio==="cash")}].filter(g=>g.tasks.length>0);
+            return <div key={b.id} style={{background:"#fff",border:isOpen?`1.5px solid ${b.color}50`:"1px solid #e5e1dc",borderRadius:10,padding:"14px 16px",marginBottom:6,borderLeft:`4px solid ${b.color}`}}>
+              <div onClick={()=>{setExpBucket(isOpen?null:b.id);setExpTask(null)}} style={{cursor:"pointer"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+                  <div style={{flex:1}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
+                      <span style={{fontSize:18}}>{b.ico}</span>
+                      <span style={{fontFamily:disp,fontSize:15,fontWeight:700,color:"#222"}}>{b.name}</span>
+                      <span style={{fontFamily:mono,fontSize:8.5,color:ti.c,background:ti.tag,padding:"2px 6px",borderRadius:3,fontWeight:600}}>{ti.ico} {ti.l}</span>
+                    </div>
+                    {/* Impact pills */}
+                    <div style={{display:"flex",gap:4,marginBottom:6,flexWrap:"wrap"}}>
+                      {b.impactPills.map((pill,pi)=>{const pr=PRIO[pill.p];return(
+                        <div key={pi} style={{display:"flex",alignItems:"center",gap:3,padding:"3px 7px",background:pr.bg,border:`1px solid ${pr.bdr}`,borderRadius:4}}>
+                          <span style={{fontSize:9}}>{pr.ico}</span>
+                          <span style={{fontFamily:mono,fontSize:8,color:pr.c,fontWeight:700}}>{pill.v}</span>
+                          <span style={{fontFamily:mono,fontSize:7.5,color:pr.c,opacity:0.75}}>{pill.l}</span>
+                        </div>
+                      );})}
+                    </div>
+                    <div style={{fontFamily:mono,fontSize:9.5,color:"#999",marginBottom:4}}>Week {b.weeks} · {bt.length} tasks · {bh} hours · EGP {(bh*RATE).toLocaleString()}</div>
+                    <div style={{fontSize:11.5,color:"#555",lineHeight:1.6}}>{b.desc}</div>
+                  </div>
+                  <span style={{fontSize:12,color:"#bbb",transform:isOpen?"rotate(180deg)":"",transition:"0.15s",marginLeft:10,flexShrink:0,marginTop:4}}>▾</span>
+                </div>
+              </div>
+              {isOpen&&<div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${b.bdr}`}}>
+                {groups.map(g=>{const pr=PRIO[g.key];return(
+                  <div key={g.key} style={{marginBottom:8}}>
+                    <div style={{display:"flex",alignItems:"center",gap:5,padding:"4px 8px",background:pr.bg,borderRadius:5,marginBottom:4,borderLeft:`3px solid ${pr.c}`}}>
+                      <span style={{fontSize:10}}>{pr.ico}</span>
+                      <span style={{fontFamily:mono,fontSize:8,color:pr.c,fontWeight:700,letterSpacing:0.5}}>{pr.l.toUpperCase()}</span>
+                      <span style={{fontFamily:mono,fontSize:7.5,color:pr.c,opacity:0.7}}>· {g.tasks.length} task{g.tasks.length>1?"s":""} · {g.tasks.reduce((s,t)=>s+t.hrs,0)}h</span>
+                    </div>
+                    {g.tasks.map(t=><TaskCard key={t.id} t={t}/>)}
+                  </div>
+                );})}
+                <div style={{display:"flex",justifyContent:"flex-end",padding:"6px 10px",background:"#fafaf8",borderRadius:5,marginTop:4}}>
+                  <span style={{fontFamily:mono,fontSize:9,color:"#888"}}>{bt.length} tasks · {bh}h · </span>
+                  <span style={{fontFamily:disp,fontSize:11,fontWeight:800,color:b.color,marginLeft:4}}>EGP {(bh*RATE).toLocaleString()}</span>
+                </div>
+              </div>}
+            </div>;
+          })}
+        </div>}
+
+        {/* ═══ TIMELINE ═══ */}
+        {view==="timeline"&&<div style={{overflowX:"auto"}}>
+          {/* Priority legend */}
+          <div style={{display:"flex",gap:6,marginBottom:8,flexWrap:"wrap"}}>
+            {Object.entries(PRIO).map(([k,p])=>(
+              <div key={k} style={{display:"flex",alignItems:"center",gap:4,padding:"3px 8px",background:p.bg,border:`1px solid ${p.bdr}`,borderRadius:4}}>
+                <div style={{width:12,height:6,borderRadius:2,background:p.c,borderLeft:`2px solid ${p.c}`}}/>
+                <span style={{fontFamily:mono,fontSize:8,color:p.c,fontWeight:700}}>{p.ico} {p.l}</span>
+              </div>
+            ))}
+            <div style={{display:"flex",alignItems:"center",gap:4,padding:"3px 8px",background:"#fef2f2",border:"1px solid #fecaca",borderRadius:4}}>
+              <div style={{width:12,height:6,borderRadius:2,background:"#dc2626",borderLeft:"2px solid #dc2626"}}/>
+              <span style={{fontFamily:mono,fontSize:8,color:"#dc2626",fontWeight:700}}>🔥 Firefighting (M1 reserved)</span>
+            </div>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"190px repeat(12,1fr)",gap:0,marginBottom:4}}>
+            <div style={{padding:"5px 6px"}}><span style={{fontFamily:mono,fontSize:8,color:"#aaa"}}>BUCKET / TASK</span></div>
+            {WEEKS.map(w=>{const ms=[{w:4,c:"#dc2626",l:"M1 END"},{w:8,c:"#a16207",l:"M2 END"},{w:12,c:"#1e40af",l:"M3 END"}].find(m=>m.w===w);
+              return <div key={w} style={{textAlign:"center",padding:"3px 1px"}}>
+                <div style={{fontFamily:mono,fontSize:8,color:ms?ms.c:"#bbb",fontWeight:ms?700:400}}>W{w}</div>
+                {ms&&<div style={{fontFamily:mono,fontSize:6,color:ms.c,letterSpacing:0}}>{ms.l}</div>}
+              </div>;
+            })}
+          </div>
+          {/* M1 firefighting row */}
+          <div style={{display:"grid",gridTemplateColumns:"190px repeat(12,1fr)",gap:0,marginBottom:4}}>
+            <div style={{padding:"3px 6px",display:"flex",alignItems:"center",gap:3}}>
+              <span style={{fontSize:10}}>🔥</span>
+              <span style={{fontFamily:mono,fontSize:7.5,color:"#dc2626",fontWeight:700}}>FIREFIGHTING & NEGOTIATIONS</span>
+            </div>
+            {WEEKS.map(w=>(
+              <div key={w} style={{padding:"2px 1px",display:"flex",alignItems:"center"}}>
+                {w<=4&&<div style={{width:"100%",height:10,background:"#fca5a540",borderLeft:w===1?"2px solid #dc2626":"none",borderRadius:w===1&&4?"3px":w===1?"3px 0 0 3px":w===4?"0 3px 3px 0":0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                  {w===1&&<span style={{fontFamily:mono,fontSize:6,color:"#dc2626",fontWeight:700}}>80h</span>}
+                </div>}
+              </div>
+            ))}
+          </div>
+          {buckets.map(b=>{
+            // Sort tasks within each bucket by priority
+            const bt=tasks.filter(t=>t.b===b.id).slice().sort(prioSort);
+            return <div key={b.id} style={{marginBottom:3}}>
+              {/* Bucket header bar */}
+              <div style={{display:"grid",gridTemplateColumns:"190px repeat(12,1fr)",gap:0,marginBottom:1}}>
+                <div style={{padding:"4px 6px",background:b.bg,borderRadius:"4px 0 0 4px",borderLeft:`3px solid ${b.color}`,display:"flex",alignItems:"center",gap:3}}>
+                  <span style={{fontSize:10}}>{b.ico}</span>
+                  <span style={{fontFamily:mono,fontSize:7.5,color:b.color,fontWeight:700}}>{b.name.toUpperCase()}</span>
+                </div>
+                {WEEKS.map(w=><div key={w} style={{background:b.bg,borderRadius:w===12?"0 4px 4px 0":0}}/>)}
+              </div>
+              {bt.map(t=>{
+                const pr=PRIO[t.prio],imp=IMP[t.impact],isKey=t.impact==="high"&&t.tier==="quick";
+                return <div key={t.id} style={{display:"grid",gridTemplateColumns:"190px repeat(12,1fr)",gap:0,marginBottom:1}}>
+                  <div style={{padding:"3px 6px",display:"flex",alignItems:"center",gap:3}}>
+                    <div style={{width:4,height:4,borderRadius:"50%",background:pr.c,flexShrink:0}}/>
+                    <span style={{fontFamily:mono,fontSize:7,color:"#bbb",width:14,textAlign:"right",flexShrink:0}}>{t.id}</span>
+                    <div style={{display:"flex",gap:1,flexShrink:0}}>{[1,2,3].map(i=><div key={i} style={{width:2,height:7,borderRadius:1,background:i<=imp.n?imp.c:"#ddd"}}/>)}</div>
+                    <span style={{fontSize:isKey?9.5:8.5,color:"#555",fontWeight:isKey?700:400,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.name}</span>
+                  </div>
+                  {WEEKS.map(w=>{const act=w>=t.w[0]&&w<=t.w[1],isS=w===t.w[0],isE=w===t.w[1];
+                    return <div key={w} style={{padding:"2px 1px",display:"flex",alignItems:"center"}}>
+                      {act&&<div style={{width:"100%",height:isKey?15:11,background:`${pr.c}20`,borderLeft:isS?`2px solid ${pr.c}`:"none",borderRadius:isS&&isE?"3px":isS?"3px 0 0 3px":isE?"0 3px 3px 0":0,display:"flex",alignItems:"center",justifyContent:"center"}}>
+                        {isS&&<span style={{fontFamily:mono,fontSize:6,color:pr.c,fontWeight:700}}>{t.hrs}h</span>}
+                      </div>}
+                    </div>;
+                  })}
+                </div>;
+              })}
+            </div>;
+          })}
+        </div>}
+
+        {/* ═══ MONTHLY PRICING ═══ */}
+        {view==="pricing"&&<div>
+          <div style={{background:"#fefce8",border:"1px solid #fde68a",borderRadius:8,padding:"12px 16px",marginBottom:10}}>
+            <div style={{fontSize:12,color:"#92400e",lineHeight:1.6}}><strong>Pricing logic:</strong> Each month is priced on actual hours scheduled × EGP {RATE.toLocaleString()}/hr. Minimum retainer EGP {MIN_RETAINER.toLocaleString()}. Tasks are ordered and grouped by financial priority: Revenue generators first → Cost reducers second → Cash collectors third.</div>
+          </div>
+          <div style={{background:"#fef2f2",border:"1px solid #fecaca",borderLeft:"4px solid #dc2626",borderRadius:8,padding:"12px 16px",marginBottom:14}}>
+            <div style={{fontFamily:mono,fontSize:9,color:"#dc2626",fontWeight:700,letterSpacing:1,marginBottom:4}}>MONTH 1 — HOUR ALLOCATION (160h CAP)</div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              <div style={{background:"#fff",borderRadius:6,padding:"10px 12px",border:"1px solid #fecaca"}}>
+                <div style={{fontFamily:mono,fontSize:8,color:"#dc2626",letterSpacing:1,marginBottom:2}}>🔥 FIREFIGHTING & NEGOTIATIONS</div>
+                <div style={{fontFamily:disp,fontSize:22,fontWeight:800,color:"#dc2626"}}>80h</div>
+                <div style={{fontSize:10,color:"#888",marginTop:2}}>Suppliers · Customers · Tax authorities · Previous partners</div>
+              </div>
+              <div style={{background:"#fff",borderRadius:6,padding:"10px 12px",border:"1px solid #fecaca"}}>
+                <div style={{fontFamily:mono,fontSize:8,color:"#1e40af",letterSpacing:1,marginBottom:2}}>📋 STRUCTURED DELIVERABLES</div>
+                <div style={{fontFamily:disp,fontSize:22,fontWeight:800,color:"#1e40af"}}>80h</div>
+                <div style={{fontSize:10,color:"#888",marginTop:2}}>Revenue → Cost → Cash priority order</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222",marginBottom:8}}>Operations Engagement</div>
+          {opsMonthly.map((m,mi)=>{
+            // Group tasks by priority
+            const sorted=m.tasks.slice().sort(prioSort);
+            const groups=[
+              {key:"rev",tasks:sorted.filter(t=>t.prio==="rev")},
+              {key:"cost",tasks:sorted.filter(t=>t.prio==="cost")},
+              {key:"cash",tasks:sorted.filter(t=>t.prio==="cash")}
+            ].filter(g=>g.tasks.length>0);
+            return (
+            <div key={mi} style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"14px 16px",marginBottom:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div>
+                  <div style={{fontFamily:disp,fontSize:15,fontWeight:700}}>{m.label}</div>
+                  <div style={{fontFamily:mono,fontSize:9.5,color:"#aaa"}}>{m.wks} · {m.tasks.length} active tasks{mi===0?" · 80h firefighting reserved":""}</div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontFamily:disp,fontSize:24,fontWeight:800}}>EGP {m.retainer.toLocaleString()}</div>
+                  <div style={{fontFamily:mono,fontSize:9,color:m.isFloor?"#D4863A":"#bbb"}}>
+                    {m.hrs}h × EGP {RATE.toLocaleString()} = EGP {m.computed.toLocaleString()}{m.isFloor?" → min retainer applies":""}
+                  </div>
+                </div>
+              </div>
+              {mi===0&&<div style={{display:"grid",gridTemplateColumns:"20px 1fr 60px 42px 70px",gap:4,alignItems:"center",padding:"5px 6px",background:"#fef2f2",borderRadius:4,marginBottom:6,border:"1px solid #fecaca"}}>
+                <span style={{fontFamily:mono,fontSize:10,color:"#dc2626",textAlign:"right"}}>🔥</span>
+                <span style={{fontSize:10,color:"#dc2626",fontWeight:700}}>Firefighting & Counter-Party Negotiations</span>
+                <span style={{fontFamily:mono,fontSize:7.5,color:"#dc2626",background:"#fee2e2",padding:"1px 3px",borderRadius:2,textAlign:"center"}}>Reserved</span>
+                <span style={{fontFamily:mono,fontSize:8.5,color:"#dc2626",textAlign:"center",fontWeight:700}}>{M1_FIREFIGHT}h</span>
+                <span style={{fontFamily:mono,fontSize:8.5,color:"#dc2626",textAlign:"right",fontWeight:700}}>EGP {(M1_FIREFIGHT*RATE).toLocaleString()}</span>
+              </div>}
+              {groups.map(g=>{
+                const pr=PRIO[g.key];
+                const grpHrs=g.tasks.reduce((s,t)=>{const span=t.w[1]-t.w[0]+1;let ov=0;for(let w=m.w[0];w<=m.w[1];w++) if(w>=t.w[0]&&w<=t.w[1]) ov++;return s+Math.round(t.hrs*ov/span);},0);
+                return (
+                  <div key={g.key} style={{marginBottom:6}}>
+                    {/* Group header */}
+                    <div style={{display:"grid",gridTemplateColumns:"20px 1fr 60px 42px 70px",gap:4,alignItems:"center",padding:"4px 6px",background:pr.bg,borderRadius:4,marginBottom:2,border:`1px solid ${pr.bdr}`}}>
+                      <span style={{fontSize:10,textAlign:"center"}}>{pr.ico}</span>
+                      <span style={{fontFamily:mono,fontSize:8,color:pr.c,fontWeight:700,letterSpacing:0.5}}>{pr.l.toUpperCase()}</span>
+                      <span style={{fontFamily:mono,fontSize:7.5,color:pr.c,background:pr.tag,padding:"1px 3px",borderRadius:2,textAlign:"center"}}>{g.tasks.length} tasks</span>
+                      <span style={{fontFamily:mono,fontSize:8,color:pr.c,textAlign:"center",fontWeight:600}}>{grpHrs}h</span>
+                      <span style={{fontFamily:mono,fontSize:8,color:pr.c,textAlign:"right",fontWeight:700}}>EGP {(grpHrs*RATE).toLocaleString()}</span>
+                    </div>
+                    {g.tasks.map(t=>{const ti=T[t.tier],span=t.w[1]-t.w[0]+1;let ov=0;
+                      for(let w=m.w[0];w<=m.w[1];w++) if(w>=t.w[0]&&w<=t.w[1]) ov++;
+                      const mh=Math.round(t.hrs*ov/span);
+                      return <div key={t.id} style={{display:"grid",gridTemplateColumns:"20px 1fr 60px 42px 70px",gap:4,alignItems:"center",padding:"3px 6px",background:"#fafaf8",borderRadius:3,marginBottom:1,border:"1px solid #f0f0ee",borderLeft:`2px solid ${pr.c}30`}}>
+                        <span style={{fontFamily:mono,fontSize:8,color:"#ccc",textAlign:"right"}}>{t.id}</span>
+                        <span style={{fontSize:10,color:"#555",fontWeight:500,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{t.name}</span>
+                        <span style={{fontFamily:mono,fontSize:7.5,color:ti.c,background:ti.tag,padding:"1px 3px",borderRadius:2,textAlign:"center"}}>{ti.l}</span>
+                        <span style={{fontFamily:mono,fontSize:8.5,color:"#888",textAlign:"center"}}>{mh}h</span>
+                        <span style={{fontFamily:mono,fontSize:8.5,color:"#333",textAlign:"right",fontWeight:600}}>EGP {(mh*RATE).toLocaleString()}</span>
+                      </div>;
+                    })}
+                  </div>
+                );
+              })}
+            </div>
+          );})}
+          <div style={{background:"#333",borderRadius:8,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <div><span style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#fff"}}>Operations Total (3 months)</span>
+              <div style={{fontFamily:mono,fontSize:9,color:"#999"}}>{opsTasks.reduce((s,t)=>s+t.hrs,0)} total hours</div></div>
+            <div style={{textAlign:"right"}}>
+              <span style={{fontFamily:disp,fontSize:22,fontWeight:800,color:"#D4863A"}}>EGP {opsTotal.toLocaleString()}</span>
+              <div style={{fontFamily:mono,fontSize:8.5,color:"#999"}}>~${Math.round(opsTotal/FX).toLocaleString()} USD</div>
+            </div>
+          </div>
+
+          <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222",marginBottom:8}}>🤝 Deal Negotiations (Separate Track)</div>
+          {dealMonthly.filter(m=>m.hrs>0).map((m,mi)=>{
+            const sorted=m.tasks.slice().sort(prioSort);
+            const groups=[{key:"rev",tasks:sorted.filter(t=>t.prio==="rev")},{key:"cost",tasks:sorted.filter(t=>t.prio==="cost")},{key:"cash",tasks:sorted.filter(t=>t.prio==="cash")}].filter(g=>g.tasks.length>0);
+            return (
+            <div key={mi} style={{background:"#fff",border:`1px solid ${D.deals.bdr}`,borderRadius:10,padding:"14px 16px",marginBottom:8}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                <div>
+                  <div style={{fontFamily:disp,fontSize:15,fontWeight:700}}>{m.label}</div>
+                  <div style={{fontFamily:mono,fontSize:9.5,color:"#aaa"}}>{m.wks} · {m.tasks.length} tasks</div>
+                </div>
+                <div style={{textAlign:"right"}}>
+                  <div style={{fontFamily:disp,fontSize:24,fontWeight:800}}>EGP {m.retainer.toLocaleString()}</div>
+                  <div style={{fontFamily:mono,fontSize:9,color:m.isFloor?"#D4863A":"#bbb"}}>
+                    {m.hrs}h × EGP {RATE.toLocaleString()} = EGP {m.computed.toLocaleString()}{m.isFloor?" → min retainer":""}
+                  </div>
+                </div>
+              </div>
+              {groups.map(g=>{
+                const pr=PRIO[g.key];
+                const grpHrs=g.tasks.reduce((s,t)=>s+t.hrs,0);
+                return (
+                  <div key={g.key} style={{marginBottom:5}}>
+                    <div style={{display:"grid",gridTemplateColumns:"20px 1fr 42px 70px",gap:4,alignItems:"center",padding:"3px 6px",background:pr.bg,borderRadius:4,marginBottom:2,border:`1px solid ${pr.bdr}`}}>
+                      <span style={{fontSize:10,textAlign:"center"}}>{pr.ico}</span>
+                      <span style={{fontFamily:mono,fontSize:8,color:pr.c,fontWeight:700}}>{pr.l.toUpperCase()}</span>
+                      <span style={{fontFamily:mono,fontSize:8,color:pr.c,textAlign:"center",fontWeight:600}}>{grpHrs}h</span>
+                      <span style={{fontFamily:mono,fontSize:8,color:pr.c,textAlign:"right",fontWeight:700}}>EGP {(grpHrs*RATE).toLocaleString()}</span>
+                    </div>
+                    {g.tasks.map(t=>(
+                      <div key={t.id} style={{display:"grid",gridTemplateColumns:"20px 1fr 42px 70px",gap:4,alignItems:"center",padding:"3px 6px",background:"#fafaf8",borderRadius:3,marginBottom:1,borderLeft:`2px solid ${pr.c}30`}}>
+                        <span style={{fontFamily:mono,fontSize:8,color:"#ccc",textAlign:"right"}}>{t.id}</span>
+                        <span style={{fontSize:10,color:"#555",fontWeight:500}}>{t.name}</span>
+                        <span style={{fontFamily:mono,fontSize:8.5,color:"#888",textAlign:"center"}}>{t.hrs}h</span>
+                        <span style={{fontFamily:mono,fontSize:8.5,color:"#333",textAlign:"right",fontWeight:600}}>EGP {(t.hrs*RATE).toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          );})}
+          <div style={{background:D.deals.c,borderRadius:8,padding:"12px 16px",display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <span style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#fff"}}>Deal Negotiations Total (2 months)</span>
+            <span style={{fontFamily:disp,fontSize:22,fontWeight:800,color:"#fff"}}>EGP {dealTotal.toLocaleString()}</span>
+          </div>
+
+          {/* Grand total */}
+          <div style={{background:"#1a1a1a",borderRadius:10,padding:"18px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div>
+              <div style={{fontFamily:disp,fontSize:16,fontWeight:700,color:"#fff"}}>Total Base Engagement</div>
+              <div style={{fontFamily:mono,fontSize:9.5,color:"#666"}}>Ops (3 mo) + Deals (2 mo) + Success Fees on milestones</div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div style={{fontFamily:disp,fontSize:30,fontWeight:800,color:"#D4863A"}}>EGP {grandTotal.toLocaleString()}</div>
+              <div style={{fontFamily:mono,fontSize:9,color:"#666"}}>~${Math.round(grandTotal/FX).toLocaleString()} USD</div>
+            </div>
+          </div>
+        </div>}
+
+        {/* ═══ SUCCESS FEES ═══ */}
+        {view==="success"&&<div>
+          <div style={{background:"#fff",border:"1px solid #fecaca",borderLeft:"4px solid #dc2626",borderRadius:8,padding:"14px 16px",marginBottom:14}}>
+            <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#dc2626",marginBottom:4}}>Context: EGP 120M Revenue · Negative EBITDA</div>
+            <div style={{fontSize:11.5,color:"#555",lineHeight:1.6}}>Each milestone is a verified, measurable step from negative profitability to healthy EBITDA. C² only earns success fees when Abou Shakra achieves real, audited profit improvement.</div>
+          </div>
+          {milestoneFees.map(m=>{const isOpen=expFee===m.id;
+            return <div key={m.id} onClick={()=>setExpFee(isOpen?null:m.id)} style={{background:"#fff",border:isOpen?`1.5px solid ${m.color}40`:"1px solid #e5e1dc",borderRadius:8,padding:"12px 14px",marginBottom:4,cursor:"pointer"}}>
+              <div style={{display:"grid",gridTemplateColumns:"28px 1fr 120px",gap:8,alignItems:"center"}}>
+                <span style={{fontSize:18,textAlign:"center"}}>{m.icon}</span>
+                <div><div style={{fontSize:12.5,fontWeight:700,color:"#222"}}>{m.milestone}</div>
+                  <div style={{fontFamily:mono,fontSize:9.5,color:"#999",marginTop:1}}>Saving: {m.saving}</div></div>
+                <div style={{textAlign:"center"}}>
+                  <div style={{fontFamily:disp,fontSize:18,fontWeight:800,color:m.color}}>{m.feeLabel}</div>
+                  <div style={{fontFamily:mono,fontSize:7.5,color:"#bbb"}}>success fee</div>
+                </div>
+              </div>
+              {isOpen&&<div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #eee",display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}} onClick={e=>e.stopPropagation()}>
+                <div style={{background:"#fafaf8",borderRadius:6,padding:"8px 10px",border:"1px solid #eee"}}>
+                  <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1,marginBottom:2}}>CURRENT</div>
+                  <div style={{fontSize:11,color:"#555"}}>{m.current}</div>
+                </div>
+                <div style={{background:"#f0fdf4",borderRadius:6,padding:"8px 10px",border:"1px solid #bbf7d0"}}>
+                  <div style={{fontFamily:mono,fontSize:8,color:"#16653a",letterSpacing:1,marginBottom:2}}>TARGET</div>
+                  <div style={{fontSize:11,color:"#16653a",fontWeight:600}}>{m.target}</div>
+                </div>
+                <div style={{background:"#eff6ff",borderRadius:6,padding:"8px 10px",border:"1px solid #dbeafe"}}>
+                  <div style={{fontFamily:mono,fontSize:8,color:"#1e40af",letterSpacing:1,marginBottom:2}}>VERIFICATION</div>
+                  <div style={{fontSize:10.5,color:"#1e40af",lineHeight:1.5}}>{m.how}</div>
+                </div>
+              </div>}
+            </div>;
+          })}
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6,marginTop:10}}>
+            <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,padding:"12px 14px",textAlign:"center"}}>
+              <div style={{fontFamily:mono,fontSize:8,color:"#16653a",letterSpacing:1}}>ABOU SHAKRA GAINS</div>
+              <div style={{fontFamily:disp,fontSize:24,fontWeight:800,color:"#16653a"}}>EGP 12M+</div>
+              <div style={{fontFamily:mono,fontSize:9,color:"#888"}}>annual profit at 10% EBITDA</div>
+            </div>
+            <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"12px 14px",textAlign:"center"}}>
+              <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1}}>C² EARNS (MAX)</div>
+              <div style={{fontFamily:disp,fontSize:24,fontWeight:800,color:"#D4863A"}}>EGP 1.75M</div>
+              <div style={{fontFamily:mono,fontSize:9,color:"#888"}}>all milestones achieved</div>
+            </div>
+            <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"12px 14px",textAlign:"center"}}>
+              <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1}}>CLIENT ROI</div>
+              <div style={{fontFamily:disp,fontSize:24,fontWeight:800,color:"#7c3aed"}}>{Math.round(12000000/(grandTotal+1750000))}:1</div>
+              <div style={{fontFamily:mono,fontSize:9,color:"#888"}}>return on total cost</div>
+            </div>
+          </div>
+        </div>}
+
+        {/* ═══ MARKET ═══ */}
+        {view==="market"&&<div>
+          {marketComp.map((m,i)=>{const isUs=m.provider.startsWith("C²");
+            return <div key={i} style={{background:isUs?"#f0fdf4":"#fff",border:isUs?"1.5px solid #bbf7d0":"1px solid #e5e1dc",borderRadius:8,padding:"12px 14px",marginBottom:5}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+                <div><div style={{fontSize:13,fontWeight:700,color:isUs?"#16653a":"#222"}}>{isUs?"✅ ":""}{m.provider}</div></div>
+                <div style={{textAlign:"right"}}><div style={{fontFamily:disp,fontSize:14,fontWeight:800,color:isUs?"#16653a":"#333"}}>{m.monthly}/mo</div>
+                  <div style={{fontFamily:mono,fontSize:8.5,color:"#bbb"}}>Total: {m.total}</div></div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 70px",gap:6}}>
+                <div style={{background:"#fafaf8",borderRadius:5,padding:"6px 8px",border:"1px solid #eee"}}>
+                  <div style={{fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:1}}>SUCCESS FEE</div>
+                  <div style={{fontSize:10.5,color:"#555",marginTop:2}}>{m.success}</div>
+                </div>
+                <div style={{background:isUs?"#dcfce7":"#fafaf8",borderRadius:5,padding:"6px 8px",border:isUs?"1px solid #bbf7d0":"1px solid #eee"}}>
+                  <div style={{fontFamily:mono,fontSize:7.5,color:isUs?"#16653a":"#999",letterSpacing:1}}>VERDICT</div>
+                  <div style={{fontSize:10.5,color:isUs?"#16653a":"#555",marginTop:2,fontWeight:isUs?600:400}}>{m.verdict}</div>
+                </div>
+                <div style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",background:isUs?"#dcfce7":"#fafaf8",borderRadius:5,border:isUs?"1px solid #bbf7d0":"1px solid #eee"}}>
+                  <div style={{fontFamily:mono,fontSize:7.5,color:"#999"}}>FIT</div>
+                  <div style={{display:"flex",gap:2,marginTop:2}}>{[1,2,3,4,5].map(j=><div key={j} style={{width:5,height:5,borderRadius:"50%",background:j<=m.score?isUs?"#16653a":"#D4863A":"#ddd"}}/>)}</div>
+                </div>
+              </div>
+            </div>;
+          })}
+          <div style={{marginTop:8,padding:"12px 14px",background:"#fff",border:"1px solid #e5e1dc",borderRadius:8}}>
+            <div style={{fontSize:11.5,color:"#555",lineHeight:1.7}}>Month 1 is priced at <strong>EGP 192K</strong> (160h: 80h firefighting + 80h structured deliverables). Months 2–3 revert to <strong>EGP 100K minimum</strong> as the acute crisis phase concludes. Even at peak engagement cost, a <strong>1% EBITDA improvement on EGP 120M = EGP 1.2M</strong> — the entire 5-month engagement pays back in under a year on a single percentage point of margin recovered.</div>
+          </div>
+        </div>}
+
+        {/* ═══ REQUIREMENTS ═══ */}
+        {view==="reqs"&&<div>
+          <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1.5,marginBottom:8}}>CLIENT-SIDE REQUIREMENTS</div>
+          {requirements.map((r,i)=>(
+            <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 110px 65px 50px",gap:5,alignItems:"center",padding:"7px 10px",background:"#fff",border:"1px solid #e5e1dc",borderRadius:5,borderLeft:r.critical?"3px solid #dc2626":"3px solid #ddd",marginBottom:2}}>
+              <span style={{fontSize:11,fontWeight:600,color:"#333"}}>{r.item}</span>
+              <span style={{fontFamily:mono,fontSize:9,color:"#888"}}>{r.who}</span>
+              <span style={{fontFamily:mono,fontSize:9,color:r.critical?"#dc2626":"#888",fontWeight:r.critical?700:400}}>{r.due}</span>
+              {r.critical?<span style={{fontFamily:mono,fontSize:7,color:"#dc2626",background:"#fef2f2",padding:"1px 3px",borderRadius:2,fontWeight:700,textAlign:"center"}}>CRITICAL</span>:<span/>}
+            </div>
+          ))}
+          <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1.5,marginTop:14,marginBottom:8}}>CRITICAL HIRES</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:14}}>
+            {[{role:"Cost Controller",resp:"Food cost, recipe validation, variance analysis, stock-take oversight",by:"Week 1"},
+              {role:"Chief Accountant",resp:"Consolidated P&L, financial position, bank reconciliation",by:"Week 1–2"}].map((h,i)=>(
+              <div key={i} style={{background:"#fff",border:"1px solid #fca5a5",borderRadius:8,padding:"10px 12px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                  <span style={{fontFamily:disp,fontSize:12,fontWeight:700}}>{h.role}</span>
+                  <span style={{fontFamily:mono,fontSize:8,color:"#dc2626",fontWeight:700}}>BY {h.by.toUpperCase()}</span>
+                </div>
+                <div style={{fontSize:10,color:"#888",lineHeight:1.4}}>{h.resp}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1.5,marginBottom:8}}>KEY TERMS</div>
+          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"12px 14px"}}>
+            {["Valid 30 days","Deliverables become Abou Shakra IP upon payment","Scope changes quoted as addenda","Strictly confidential","14 days notice to terminate; retainer prorated","Unimpeded access to systems & personnel required","Client delays extend timeline proportionally","Monthly retainer based on hours with EGP 100K minimum"].map((t,i)=>(
+              <div key={i} style={{display:"flex",gap:5,padding:"3px 0",borderBottom:i<7?"1px solid #f0f0ee":"none"}}>
+                <span style={{fontFamily:mono,fontSize:9,color:"#D4863A"}}>§{i+1}</span>
+                <span style={{fontSize:10.5,color:"#666",lineHeight:1.5}}>{t}</span>
+              </div>
+            ))}
+          </div>
+        </div>}
+
+        <div style={{marginTop:20,paddingTop:12,borderTop:"1px solid #e5e1dc",display:"flex",justifyContent:"space-between"}}>
+          <div style={{display:"flex",alignItems:"center",gap:4}}><span style={{fontFamily:disp,fontSize:11,fontWeight:300,color:"#bbb"}}>C^2</span><span style={{fontFamily:mono,fontSize:7.5,color:"#ccc",letterSpacing:2}}>FRACTIONAL MANAGEMENT</span></div>
+          <span style={{fontFamily:mono,fontSize:7.5,color:"#ccc"}}>QT-AS-2026-001 · Confidential</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(React.createElement(App));
+</script>
+</body>
+</html>
