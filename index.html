@@ -276,6 +276,25 @@ const App = function App(){
   const [taskFilter,setTaskFilter]=useState("all");
   const [commentFilter,setCommentFilter]=useState("all");
 
+  // Marketing & Sales Plan state
+  const [mktPlan,setMktPlan]=useState({
+    monthlyBudget:30000,
+    channels:{
+      social:    {name:"Instagram / TikTok Ads",   budget:8000,  active:true,  impressions:"",clicks:"",orders:"",roas:""},
+      google:    {name:"Google Ads (Search+Maps)",  budget:7000,  active:true,  impressions:"",clicks:"",orders:"",roas:""},
+      influencer:{name:"Influencer Marketing",      budget:6000,  active:false, impressions:"",clicks:"",orders:"",roas:""},
+      talabat:   {name:"Talabat / Noon Ads",        budget:5000,  active:true,  impressions:"",clicks:"",orders:"",roas:""},
+      crm:       {name:"WhatsApp / CRM Broadcasts", budget:2000,  active:false, impressions:"",clicks:"",orders:"",roas:""},
+      pr:        {name:"PR & Press",                budget:2000,  active:false, impressions:"",clicks:"",orders:"",roas:""},
+    },
+    funnel:{impressions:"",profileVisits:"",menuViews:"",orders:"",repeatCustomers:""},
+    targets:{avgCheck:250,coversPerMonth:5000,repeatRate:40,newCustomerMonth:500},
+    notes:"",
+  });
+  const updMktCh=(key,field,val)=>setMktPlan(p=>({...p,channels:{...p.channels,[key]:{...p.channels[key],[field]:val}}}));
+  const updMktFunnel=(field,val)=>setMktPlan(p=>({...p,funnel:{...p.funnel,[field]:val}}));
+  const updMktTarget=(field,val)=>setMktPlan(p=>({...p,targets:{...p.targets,[field]:val}}));
+
   // New task form
   const [newTask,setNewTask]=useState({name:"",dept:"finance",tier:"quick",hrs:4,w:[1,4],impact:"med",prio:"cost",b:"B1",desc:"",pnl:"",bs:"",cf:""});
   // New comment form
@@ -458,7 +477,7 @@ const App = function App(){
       <div style={{maxWidth:1100,margin:"0 auto",padding:"14px 24px"}}>
         {/* NAV */}
         <div style={{display:"flex",gap:2,marginBottom:14,background:"#fff",borderRadius:7,padding:3,width:"fit-content",border:"1px solid #e5e1dc",flexWrap:"wrap"}}>
-          {[["overview","Overview"],["buckets","Engagement Buckets"],["timeline","Timeline"],["pricing","Monthly Pricing"],["success","Success Fees"],["market","Market Comparison"],["budget","Budget vs Actual"],["notes","Comments & Tasks"],["reqs","Requirements"]].map(([k,l])=>(
+          {[["overview","Overview"],["buckets","Engagement Buckets"],["timeline","Timeline"],["pricing","Monthly Pricing"],["success","Success Fees"],["market","Market Comparison"],["budget","Budget vs Actual"],["notes","Comments & Tasks"],["mktplan","Marketing & Sales Plan"],["reqs","Requirements"]].map(([k,l])=>(
             <button key={k} onClick={()=>setView(k)} style={{fontFamily:sans,padding:"5px 11px",borderRadius:5,border:"none",background:view===k?"#333":"transparent",color:view===k?"#fff":"#999",fontSize:10.5,fontWeight:700,cursor:"pointer",position:"relative"}}>
               {l}
               {k==="notes"&&comments.filter(c=>c.status==="Open").length>0&&<span style={{position:"absolute",top:1,right:1,width:6,height:6,borderRadius:"50%",background:"#dc2626"}}/>}
@@ -1302,6 +1321,244 @@ const App = function App(){
           </div>
         </div>
       </div>}
+
+
+        {/* ═══ MARKETING & SALES PLAN ═══ */}
+        {view==="mktplan"&&<div>
+          <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1.5,marginBottom:12}}>MARKETING & SALES PLAN — BUDGET, FUNNEL & TARGETS</div>
+
+          {/* ── Section 1: Monthly Budget Allocation ── */}
+          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <div>
+                <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222"}}>Channel Budget Allocation</div>
+                <div style={{fontFamily:mono,fontSize:9,color:"#999",marginTop:2}}>Set budgets, toggle active channels, track actuals and ROAS</div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1}}>TOTAL MONTHLY BUDGET</div>
+                <div style={{fontFamily:disp,fontSize:22,fontWeight:800,color:"#be185d"}}>
+                  EGP {Object.values(mktPlan.channels).filter(c=>c.active).reduce((s,c)=>s+(Number(c.budget)||0),0).toLocaleString()}
+                </div>
+                <div style={{fontFamily:mono,fontSize:8,color:"#999"}}>of {mktPlan.channels && Object.values(mktPlan.channels).reduce((s,c)=>s+(Number(c.budget)||0),0).toLocaleString()} planned</div>
+              </div>
+            </div>
+
+            {/* Budget bar */}
+            <div style={{display:"flex",height:8,borderRadius:4,overflow:"hidden",marginBottom:14,background:"#f0ede8"}}>
+              {Object.entries(mktPlan.channels).filter(([,c])=>c.active).map(([k,c],i)=>{
+                const colors=["#be185d","#1e40af","#a16207","#16653a","#7c3aed","#0f766e"];
+                const total=Object.values(mktPlan.channels).filter(x=>x.active).reduce((s,x)=>s+(Number(x.budget)||0),0)||1;
+                return <div key={k} style={{width:`${(Number(c.budget)||0)/total*100}%`,background:colors[i%6]}}/>;
+              })}
+            </div>
+
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontFamily:sans,fontSize:11}}>
+                <thead>
+                  <tr style={{background:"#f5f3f0"}}>
+                    {["On","Channel","Budget (EGP/mo)","Impressions","Clicks / Views","Orders","ROAS (×)","Status"].map((h,i)=>(
+                      <th key={i} style={{padding:"6px 10px",textAlign:"left",fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:1,borderBottom:"1px solid #e5e1dc",fontWeight:600,whiteSpace:"nowrap"}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(mktPlan.channels).map(([key,ch],i)=>{
+                    const roas=Number(ch.roas)||0;
+                    const roasColor=roas>=5?"#16653a":roas>=3?"#a16207":roas>0?"#dc2626":"#bbb";
+                    return(
+                      <tr key={key} style={{borderBottom:"1px solid #f0ede8",background:ch.active?"#fff":"#fafaf8",opacity:ch.active?1:0.55}}>
+                        <td style={{padding:"8px 10px"}}>
+                          <input type="checkbox" checked={ch.active} onChange={e=>updMktCh(key,"active",e.target.checked)} style={{cursor:"pointer",width:14,height:14}}/>
+                        </td>
+                        <td style={{padding:"8px 10px",fontWeight:600,color:"#222",whiteSpace:"nowrap"}}>{ch.name}</td>
+                        <td style={{padding:"8px 10px"}}>
+                          <input type="number" value={ch.budget} onChange={e=>updMktCh(key,"budget",Number(e.target.value))}
+                            style={{width:90,padding:"3px 6px",border:"1px solid #e5e1dc",borderRadius:4,fontFamily:mono,fontSize:10,background:ch.active?"#fff":"#f5f3f0"}}/>
+                        </td>
+                        {["impressions","clicks","orders"].map(f=>(
+                          <td key={f} style={{padding:"8px 10px"}}>
+                            <input type="text" value={ch[f]} onChange={e=>updMktCh(key,f,e.target.value)} placeholder="—"
+                              style={{width:80,padding:"3px 6px",border:"1px solid #e5e1dc",borderRadius:4,fontFamily:mono,fontSize:10,background:ch.active?"#fff":"#f5f3f0"}}/>
+                          </td>
+                        ))}
+                        <td style={{padding:"8px 10px"}}>
+                          <input type="text" value={ch.roas} onChange={e=>updMktCh(key,"roas",e.target.value)} placeholder="—"
+                            style={{width:60,padding:"3px 6px",border:"1px solid #e5e1dc",borderRadius:4,fontFamily:mono,fontSize:10,color:roasColor,fontWeight:700,background:ch.active?"#fff":"#f5f3f0"}}/>
+                        </td>
+                        <td style={{padding:"8px 10px"}}>
+                          {roas>=5?<span style={{fontFamily:mono,fontSize:8,color:"#16653a",background:"#f0fdf4",padding:"2px 6px",borderRadius:3,fontWeight:700}}>SCALE ↑</span>
+                          :roas>=3?<span style={{fontFamily:mono,fontSize:8,color:"#a16207",background:"#fffbeb",padding:"2px 6px",borderRadius:3,fontWeight:700}}>HOLD</span>
+                          :roas>0?<span style={{fontFamily:mono,fontSize:8,color:"#dc2626",background:"#fef2f2",padding:"2px 6px",borderRadius:3,fontWeight:700}}>REVIEW ↓</span>
+                          :<span style={{fontFamily:mono,fontSize:8,color:"#bbb",padding:"2px 6px",borderRadius:3}}>NO DATA</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* ── Section 2: Sales Funnel Tracker ── */}
+          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
+            <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222",marginBottom:4}}>Sales Funnel — Actual Conversions</div>
+            <div style={{fontFamily:mono,fontSize:9,color:"#999",marginBottom:12}}>Fill in actuals as data becomes available from GMB, POS, and CRM. Conversion rates calculate automatically.</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:14}}>
+              {[
+                {label:"Total Impressions",field:"impressions",icon:"👁",color:"#1e40af",hint:"Across all paid + organic channels"},
+                {label:"Profile / Page Visits",field:"profileVisits",icon:"🔍",color:"#a16207",hint:"GMB views + social profile visits"},
+                {label:"Menu Views / Clicks",field:"menuViews",icon:"📋",color:"#16653a",hint:"Menu clicks on Talabat, website, GMB"},
+                {label:"Orders / Covers",field:"orders",icon:"🛒",color:"#7c3aed",hint:"Total orders + dine-in covers this month"},
+                {label:"Repeat Customers",field:"repeatCustomers",icon:"🔄",color:"#be185d",hint:"Customers with 2+ visits this month"},
+              ].map(({label,field,icon,color,hint})=>{
+                const val=Number(mktPlan.funnel[field])||0;
+                const prev={impressions:0,profileVisits:Number(mktPlan.funnel.impressions)||0,menuViews:Number(mktPlan.funnel.profileVisits)||0,orders:Number(mktPlan.funnel.menuViews)||0,repeatCustomers:Number(mktPlan.funnel.orders)||0};
+                const prevVal=prev[field]||0;
+                const rate=prevVal>0?((val/prevVal)*100).toFixed(1):null;
+                return(
+                  <div key={field} style={{background:"#f9f8f6",borderRadius:8,padding:"12px",borderLeft:`3px solid ${color}`}}>
+                    <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:6}}>
+                      <span style={{fontSize:16}}>{icon}</span>
+                      <div style={{fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:1,lineHeight:1.2}}>{label.toUpperCase()}</div>
+                    </div>
+                    <input type="text" value={mktPlan.funnel[field]} onChange={e=>updMktFunnel(field,e.target.value)} placeholder="Enter actual"
+                      style={{width:"100%",padding:"5px 8px",border:"1px solid #e5e1dc",borderRadius:4,fontFamily:mono,fontSize:12,boxSizing:"border-box",marginBottom:4}}/>
+                    {rate&&<div style={{fontFamily:mono,fontSize:8,color:color,fontWeight:700}}>↓ {rate}% from prev stage</div>}
+                    <div style={{fontFamily:sans,fontSize:8.5,color:"#aaa",marginTop:2}}>{hint}</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Funnel visual */}
+            {(Number(mktPlan.funnel.impressions)||0)>0&&<div>
+              <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1,marginBottom:8}}>FUNNEL VISUALISATION</div>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:2}}>
+                {[
+                  {label:"Impressions",field:"impressions",color:"#1e40af"},
+                  {label:"Profile Visits",field:"profileVisits",color:"#a16207"},
+                  {label:"Menu Views",field:"menuViews",color:"#16653a"},
+                  {label:"Orders / Covers",field:"orders",color:"#7c3aed"},
+                  {label:"Repeat Customers",field:"repeatCustomers",color:"#be185d"},
+                ].map(({label,field,color},i,arr)=>{
+                  const val=Number(mktPlan.funnel[field])||0;
+                  const top=Number(mktPlan.funnel.impressions)||1;
+                  const pct=Math.max((val/top)*100,2);
+                  const conv=i>0?(Number(mktPlan.funnel[arr[i-1].field])||0):0;
+                  const convRate=conv>0?((val/conv)*100).toFixed(1):null;
+                  return(
+                    <div key={field} style={{width:"100%",display:"flex",alignItems:"center",gap:8}}>
+                      <div style={{flex:1,display:"flex",justifyContent:"center"}}>
+                        <div style={{width:`${pct}%`,minWidth:120,background:color,borderRadius:4,padding:"5px 10px",textAlign:"center",transition:"width 0.3s"}}>
+                          <div style={{fontFamily:disp,fontSize:11,fontWeight:700,color:"#fff"}}>{val.toLocaleString()}</div>
+                          <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(255,255,255,0.8)"}}>{label}</div>
+                        </div>
+                      </div>
+                      {convRate&&<div style={{fontFamily:mono,fontSize:9,color:color,fontWeight:700,width:50}}>{convRate}%</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>}
+          </div>
+
+          {/* ── Section 3: Sales Targets ── */}
+          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
+            <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222",marginBottom:4}}>Sales Targets — Monthly</div>
+            <div style={{fontFamily:mono,fontSize:9,color:"#999",marginBottom:12}}>Set your targets. These feed the incentive scheme and branch performance scoring.</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:10,marginBottom:14}}>
+              {[
+                {label:"Average Check Target (EGP)",field:"avgCheck",icon:"🧾",color:"#16653a",desc:"Per cover / per order"},
+                {label:"Covers per Month per Branch",field:"coversPerMonth",icon:"🪑",color:"#1e40af",desc:"Dine-in + takeaway covers"},
+                {label:"Repeat Customer Rate Target (%)",field:"repeatRate",icon:"🔄",color:"#be185d",desc:"Customers with 2+ visits"},
+                {label:"New Customers per Month Target",field:"newCustomerMonth",icon:"🆕",color:"#7c3aed",desc:"First-time visitors"},
+              ].map(({label,field,icon,color,desc})=>(
+                <div key={field} style={{background:"#f9f8f6",borderRadius:8,padding:"12px",borderLeft:`3px solid ${color}`}}>
+                  <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:6}}>
+                    <span style={{fontSize:16}}>{icon}</span>
+                    <div style={{fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:1}}>{label.toUpperCase()}</div>
+                  </div>
+                  <input type="number" value={mktPlan.targets[field]} onChange={e=>updMktTarget(field,Number(e.target.value))}
+                    style={{width:"100%",padding:"5px 8px",border:"1px solid #e5e1dc",borderRadius:4,fontFamily:mono,fontSize:14,fontWeight:700,color:color,boxSizing:"border-box",marginBottom:4}}/>
+                  <div style={{fontFamily:sans,fontSize:8.5,color:"#aaa"}}>{desc}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Calculated revenue projection */}
+            <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:8,padding:"12px 16px"}}>
+              <div style={{fontFamily:mono,fontSize:8,color:"#16653a",letterSpacing:1,marginBottom:8}}>PROJECTED MONTHLY REVENUE — ALL 8 BRANCHES</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:8}}>
+                {(()=>{
+                  const rev8=mktPlan.targets.avgCheck*mktPlan.targets.coversPerMonth*8;
+                  const repeatRevenue=rev8*(mktPlan.targets.repeatRate/100)*1.1;
+                  const mktCost=Object.values(mktPlan.channels).filter(c=>c.active).reduce((s,c)=>s+(Number(c.budget)||0),0)*8;
+                  const netRev=rev8-mktCost;
+                  return[
+                    {l:"Gross Revenue (8 branches)",v:`EGP ${rev8.toLocaleString()}`,c:"#16653a"},
+                    {l:"Est. Repeat Customer Revenue",v:`EGP ${Math.round(repeatRevenue).toLocaleString()}`,c:"#1e40af"},
+                    {l:"Total Marketing Spend (8 br.)",v:`EGP ${mktCost.toLocaleString()}`,c:"#dc2626"},
+                    {l:"Revenue After Marketing Cost",v:`EGP ${netRev.toLocaleString()}`,c:netRev>0?"#16653a":"#dc2626"},
+                  ].map((s,i)=>(
+                    <div key={i} style={{background:"#fff",borderRadius:6,padding:"10px 12px",border:"1px solid #bbf7d0"}}>
+                      <div style={{fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:1,marginBottom:2}}>{s.l.toUpperCase()}</div>
+                      <div style={{fontFamily:disp,fontSize:15,fontWeight:800,color:s.c}}>{s.v}</div>
+                    </div>
+                  ));
+                })()}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Section 4: 90-Day Action Plan ── */}
+          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
+            <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222",marginBottom:10}}>90-Day Marketing Action Plan</div>
+            {[
+              {phase:"Month 1 — Audit & Zero-Cost Wins",color:"#dc2626",weeks:"W1–W4",items:[
+                "Audit all social accounts, GMB listings, Talabat/Noon profiles across all 8 branches",
+                "Claim and optimise Google My Business for every branch — photos, menus, hours, Q&A",
+                "Standardise brand assets: logo usage, photography style, social bios",
+                "Build customer database from POS + reservation history",
+                "Establish baseline: followers, monthly orders per channel, current avg check, GMB views",
+              ]},
+              {phase:"Month 2 — Test & Activate",color:"#a16207",weeks:"W5–W8",items:[
+                "Launch paid social (IG/TikTok): 2-week test per branch, EGP 5K controlled budget",
+                "Activate Google Ads for top 3 revenue branches — search + maps",
+                "Talabat/Noon promotional placements to accelerate QC revenue",
+                "Onboard 1–2 micro-influencers per branch (10K–100K followers, food niche)",
+                "Launch WhatsApp loyalty broadcast to existing customer base — weekly deals",
+              ]},
+              {phase:"Month 3 — Optimise & Scale",color:"#16653a",weeks:"W9–W12",items:[
+                "Review Month 1–2 ROAS by channel — cut losers, double down on winners",
+                "Scale winning channels to full 8-branch rollout",
+                "Launch referral programme: 'Bring a friend' cross-branch incentive",
+                "First funnel report: impressions → visits → orders → repeat rate vs targets",
+                "Tie marketing performance to branch leaderboard scoring",
+              ]},
+            ].map((ph,i)=>(
+              <div key={i} style={{marginBottom:12,paddingLeft:12,borderLeft:`3px solid ${ph.color}`}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
+                  <div style={{fontFamily:disp,fontSize:12,fontWeight:700,color:ph.color}}>{ph.phase}</div>
+                  <div style={{fontFamily:mono,fontSize:8,color:"#bbb",background:"#f5f3f0",padding:"2px 6px",borderRadius:3}}>{ph.weeks}</div>
+                </div>
+                {ph.items.map((item,j)=>(
+                  <div key={j} style={{fontFamily:sans,fontSize:10.5,color:"#555",padding:"2px 0",display:"flex",gap:6}}>
+                    <span style={{color:ph.color,fontWeight:700,flexShrink:0}}>→</span>{item}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* ── Section 5: Notes ── */}
+          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px"}}>
+            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:8}}>Planning Notes</div>
+            <textarea value={mktPlan.notes} onChange={e=>setMktPlan(p=>({...p,notes:e.target.value}))}
+              placeholder="Add notes, decisions, or hypotheses about your marketing strategy here..."
+              style={{width:"100%",minHeight:100,padding:"10px 12px",border:"1px solid #e5e1dc",borderRadius:6,fontFamily:sans,fontSize:11,color:"#444",resize:"vertical",boxSizing:"border-box",background:"#fafaf8"}}/>
+          </div>
+        </div>}
+
 
       </div>
   );
