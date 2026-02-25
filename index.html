@@ -48,43 +48,83 @@ const PRIO_ORDER = {rev:0,cost:1,cash:2};
 const BRANCHES = ["Korba","Mohandessin","Maadi","Zamalek","Nasr City","Heliopolis","New Cairo","6th of October"];
 const MONTHS_LIST = ["Jan 2026","Feb 2026","Mar 2026","Apr 2026","May 2026","Jun 2026"];
 
-// ═══ TASKS (B4 Gap Analysis removed) ═══
+// ═══ TASKS — dependency-ordered ═══
+// Dependency rule: task.w[0] must be >= max(dep.w[1]) + 1 where possible
 const INITIAL_TASKS = [
-  { id:1,b:"B1",name:"Consolidated P&L Report",dept:"finance",tier:"medium",hrs:10,w:[5,7],impact:"high",prio:"cost",desc:"Build the first consolidated P&L across all branches and central prep. Scheduled for end of March — no opening stock exists, so we need a full month of controlled data before this is meaningful.",pnl:"Creates measurement system. Identifies 5–15% profit variance between branches.",bs:"First accurate balance sheet baseline. Corrects retained earnings.",cf:"Identifies cash vs. accrual gaps. Reveals where cash is trapped.",deps:[],enables:[2,7,8,14,15,16]},
-  { id:2,b:"B1",name:"P&L per Branch",dept:"finance",tier:"medium",hrs:10,w:[5,7],impact:"high",prio:"cost",desc:"Break profitability to branch level. Requires consolidated P&L first — also end of March due to missing opening stock.",pnl:"Exposes 5–15% profit variance. Enables targeted intervention on underperformers.",bs:"Identifies excess inventory and understated liabilities per branch.",cf:"Maps cash generation by location. Reveals cash-subsidised branches.",deps:[1],enables:[15,24,27]},
-  { id:3,b:"B1",name:"Bank Statement Collection & Reconciliation",dept:"finance",tier:"quick",hrs:2,w:[1,1],impact:"med",prio:"cash",desc:"Gather all bank records for full reconciliation. Unreconciled accounts hide embezzlement, duplicate payments, missing deposits.",pnl:"Uncovers 1–3% unrecorded transactions distorting P&L.",bs:"Enables accurate cash position. Identifies unrecorded liabilities.",cf:"Foundation of cash flow accuracy. Gap between bank and book = pure risk.",deps:[],enables:[4,6]},
-  { id:4,b:"B1",name:"Register All Transactions on System",dept:"finance",tier:"quick",hrs:6,w:[1,1],impact:"high",prio:"cash",desc:"Force every transaction through accounting. Off-book activity is the fastest path to cash leakage.",pnl:"Captures 2–5% unrecorded revenue. Eliminates invisible expenses.",bs:"Corrects AR/AP balances. Ensures all liabilities recognised.",cf:"Closes gap between actual and recorded cash flow.",deps:[3],enables:[1,6,13]},
+  // ── B1: Financial Visibility & Controls ──
+  // W1 foundation — no deps
+  { id:3,b:"B1",name:"Bank Statement Collection & Reconciliation",dept:"finance",tier:"quick",hrs:2,w:[1,1],impact:"med",prio:"cash",desc:"Gather all bank records for full reconciliation. Unreconciled accounts hide embezzlement, duplicate payments, missing deposits.",pnl:"Uncovers 1–3% unrecorded transactions distorting P&L.",bs:"Enables accurate cash position. Identifies unrecorded liabilities.",cf:"Foundation of cash flow accuracy. Gap between bank and book = pure risk.",deps:[],enables:[4,36]},
   { id:5,b:"B1",name:"Fixed Assets Count (All Locations)",dept:"finance",tier:"quick",hrs:8,w:[1,2],impact:"med",prio:"cost",desc:"Physically verify every asset against register. Phantom assets inflate BS; unregistered assets have no insurance.",pnl:"Corrects depreciation by 5–15%. Removes ghost asset expenses.",bs:"Direct BS correction — aligns book value to physical reality.",cf:"Eliminates over-depreciation cash drag. Identifies disposal proceeds.",deps:[],enables:[6]},
-  { id:6,b:"B1",name:"Financial Position Statement",dept:"finance",tier:"medium",hrs:8,w:[5,7],impact:"high",prio:"cash",desc:"Definitive snapshot of what the business owns, owes, and is worth. Scheduled end of March — requires reconciled bank statements and registered transactions to be meaningful.",pnl:"Validates P&L accuracy via BS cross-check.",bs:"This IS the balance sheet. First accurate snapshot — possibly ever.",cf:"Derives cash flow statement from BS movements. Shows free cash flow.",deps:[1,3,4,5],enables:[]},
-  { id:7,b:"B1",name:"2025 Budget vs. Actual Review",dept:"finance",tier:"quick",hrs:12,w:[1,2],impact:"med",prio:"cost",desc:"Compare budget to actual for 2025. Variances reveal broken assumptions and uncontrolled spending.",pnl:"Identifies 3–7% controllable cost overruns.",bs:"Reveals capex over/under budget.",cf:"Compares cash budget to actual cash position.",deps:[],enables:[15,16]},
+  { id:7,b:"B1",name:"2025 Budget vs. Actual Review",dept:"finance",tier:"quick",hrs:12,w:[1,2],impact:"med",prio:"cost",desc:"Compare budget to actual for 2025. Variances reveal broken assumptions and uncontrolled spending.",pnl:"Identifies 3–7% controllable cost overruns.",bs:"Reveals capex over/under budget.",cf:"Compares cash budget to actual cash position.",deps:[],enables:[]},
   { id:8,b:"B1",name:"Food Costing & Recipe Pricing Audit",dept:"finance",tier:"quick",hrs:16,w:[1,3],impact:"high",prio:"cost",desc:"Visit every branch, measure actual recipes vs. system. The #1 margin lever — wrong recipe costs = wrong menu prices.",pnl:"2–5 pp food cost reduction. On EGP 120M, that's EGP 2.4M–6M/year.",bs:"Corrects inventory valuation. Identifies obsolete stock.",cf:"Faster inventory turnover. Reduces cash trapped in excess stock 10–20%.",deps:[],enables:[12,21,25]},
-  { id:12,b:"B2",name:"Menu Costing Full Review",dept:"finance",tier:"medium",hrs:12,w:[2,4],impact:"high",prio:"cost",desc:"Re-cost every menu item including sub-recipes, garnishes, packaging.",pnl:"2–4% gross margin improvement.",bs:"Corrects WIP inventory valuation.",cf:"Better margin = more cash per transaction.",deps:[8],enables:[24,25]},
-  { id:13,b:"B2",name:"Full Stock Take (All Locations)",dept:"finance",tier:"medium",hrs:16,w:[2,3],impact:"high",prio:"cost",desc:"Physical count of every item in every location. Gap between book and physical = pure loss.",pnl:"1–3% COGS reduction from shrinkage control.",bs:"Direct inventory adjustment. May require write-down of damaged/obsolete stock.",cf:"Stops ongoing cash drain from pilferage.",deps:[4],enables:[14,16,23]},
-  { id:15,b:"B2",name:"Revenue Analysis 2025/26 per Branch",dept:"finance",tier:"medium",hrs:12,w:[7,9],impact:"high",prio:"rev",desc:"Deep revenue trends by month, branch, category.",pnl:"3–8% revenue uplift from demand alignment.",bs:"Informs asset allocation decisions.",cf:"Reveals cash generation patterns by period.",deps:[1,2],enables:[26]},
-  { id:16,b:"B2",name:"Detailed Expenses per Branch",dept:"finance",tier:"medium",hrs:12,w:[7,9],impact:"high",prio:"cost",desc:"Line-by-line expense breakdown per branch.",pnl:"5–12% cost reduction on outlier categories.",bs:"May reveal unrecorded liabilities.",cf:"Targets exact expense lines consuming excess cash.",deps:[1,2],enables:[]},
-  { id:20,b:"B2",name:"Purchases Analysis 2026 Monthly",dept:"finance",tier:"medium",hrs:8,w:[3,5],impact:"med",prio:"cost",desc:"Analyse procurement patterns — over-ordering, supplier pricing creep, purchasing inefficiencies.",pnl:"3–6% procurement savings.",bs:"Identifies excess inventory for liquidation.",cf:"Reduces cash tied in over-ordering.",deps:[],enables:[]},
+  // W1 → W2 chain
+  { id:4,b:"B1",name:"Register All Transactions on System",dept:"finance",tier:"quick",hrs:6,w:[1,2],impact:"high",prio:"cash",desc:"Force every transaction through accounting. Off-book activity is the fastest path to cash leakage.",pnl:"Captures 2–5% unrecorded revenue. Eliminates invisible expenses.",bs:"Corrects AR/AP balances. Ensures all liabilities recognised.",cf:"Closes gap between actual and recorded cash flow.",deps:[3],enables:[13,36]},
+  { id:36,b:"B1",name:"Accrued Revenue Collection from Branches",dept:"finance",tier:"quick",hrs:8,w:[2,3],impact:"high",prio:"cash",desc:"Identify and collect all accrued but uncollected revenues from branches.",pnl:"Recovers 1–4% of branch revenue previously unrecorded.",bs:"Converts accrued revenue asset into cash.",cf:"Immediate cash injection. On EGP 120M, even 1% = EGP 1.2M.",deps:[3,4],enables:[]},
+  // W2–W4: P&L per Branch first (requires 1 month of clean data)
+  { id:2,b:"B1",name:"P&L per Branch",dept:"finance",tier:"medium",hrs:10,w:[4,6],impact:"high",prio:"cost",desc:"Break profitability to branch level. Requires ~1 month of clean transaction data and food costing baseline. This comes BEFORE the consolidated view — you need branches working correctly first.",pnl:"Exposes 5–15% profit variance. Enables targeted intervention on underperformers.",bs:"Identifies excess inventory and understated liabilities per branch.",cf:"Maps cash generation by location. Reveals cash-subsidised branches.",deps:[4,8],enables:[1,15,27]},
+  // W6+: Consolidated P&L depends on branch P&Ls being stable
+  { id:1,b:"B1",name:"Consolidated P&L Report",dept:"finance",tier:"medium",hrs:10,w:[6,8],impact:"high",prio:"cost",desc:"Consolidate across all branches once each branch P&L is validated. Built bottom-up — not top-down. Branch-level accuracy comes first.",pnl:"Creates group-level measurement system. Identifies 5–15% profit variance between branches.",bs:"First accurate balance sheet baseline. Corrects retained earnings.",cf:"Identifies cash vs. accrual gaps. Reveals where cash is trapped.",deps:[2,5],enables:[6,15,16]},
+  // W7+: Full financial picture — deps on consolidated P&L
+  { id:6,b:"B1",name:"Financial Position Statement",dept:"finance",tier:"medium",hrs:8,w:[7,8],impact:"high",prio:"cash",desc:"Definitive balance sheet snapshot — requires reconciled bank, registered transactions, fixed assets, and consolidated P&L.",pnl:"Validates P&L accuracy via BS cross-check.",bs:"This IS the balance sheet. First accurate snapshot — possibly ever.",cf:"Derives cash flow statement from BS movements. Shows free cash flow.",deps:[1,3,5],enables:[]},
+
+  // ── B2: Cost & Revenue Deep-Dive ──
+  // W2: stock take right after transactions registered
+  { id:13,b:"B2",name:"Full Stock Take (All Locations)",dept:"finance",tier:"medium",hrs:16,w:[2,3],impact:"high",prio:"cost",desc:"Physical count of every item in every location. Gap between book and physical = pure loss.",pnl:"1–3% COGS reduction from shrinkage control.",bs:"Direct inventory adjustment. May require write-down of damaged/obsolete stock.",cf:"Stops ongoing cash drain from pilferage.",deps:[4],enables:[14,22,23]},
+  // W3: menu costing after food audit
+  { id:12,b:"B2",name:"Menu Costing Full Review",dept:"finance",tier:"medium",hrs:12,w:[3,5],impact:"high",prio:"cost",desc:"Re-cost every menu item including sub-recipes, garnishes, packaging.",pnl:"2–4% gross margin improvement.",bs:"Corrects WIP inventory valuation.",cf:"Better margin = more cash per transaction.",deps:[8],enables:[25]},
+  { id:20,b:"B2",name:"Purchases Analysis 2026 Monthly",dept:"finance",tier:"medium",hrs:8,w:[3,5],impact:"med",prio:"cost",desc:"Analyse procurement patterns — over-ordering, supplier pricing creep, purchasing inefficiencies.",pnl:"3–6% procurement savings.",bs:"Identifies excess inventory for liquidation.",cf:"Reduces cash tied in over-ordering.",deps:[4],enables:[]},
   { id:21,b:"B2",name:"Staff Meal Treatment & Policy",dept:"finance",tier:"medium",hrs:4,w:[3,4],impact:"low",prio:"cost",desc:"Define staff meal rules and tracking.",pnl:"0.5–1.5% food cost reduction.",bs:"Reclassifies hidden cost. Improves inventory accuracy.",cf:"Reduces uncontrolled food consumption draining inventory cash.",deps:[8],enables:[28]},
-  { id:9,b:"B3",name:"Menu Review & Optimisation",dept:"ops",tier:"quick",hrs:8,w:[1,2],impact:"high",prio:"rev",desc:"Analyse menu for dead items, cannibalisation, complexity.",pnl:"2–4% revenue uplift. 1–2% food cost reduction.",bs:"Reduces raw material SKUs → lower inventory.",cf:"Faster inventory turns, fewer slow-moving items.",deps:[],enables:[8,10,22,24]},
-  { id:10,b:"B3",name:"Pricing Structure Review",dept:"ops",tier:"quick",hrs:8,w:[1,2],impact:"high",prio:"rev",desc:"Audit every price against cost, competition, willingness-to-pay.",pnl:"1–3% revenue increase. Direct EBITDA improvement.",bs:"Pure income statement play. Improves retained earnings.",cf:"Immediate cash flow improvement.",deps:[9],enables:[22]},
-  { id:14,b:"B3",name:"Random Inspection SOP",dept:"finance",tier:"medium",hrs:6,w:[2,3],impact:"med",prio:"cost",desc:"Formalise unannounced branch inspections — cash, inventory, food safety.",pnl:"1–3% reduction in shrinkage and cash discrepancies.",bs:"Protects inventory asset value.",cf:"Prevents ongoing cash leakage at branch level.",deps:[13],enables:[16]},
-  { id:22,b:"B3",name:"End-of-Month Inspection SOP",dept:"finance",tier:"medium",hrs:6,w:[2,3],impact:"med",prio:"cash",desc:"Standardise monthly close at branch level.",pnl:"Improves monthly P&L accuracy.",bs:"Ensures BS updated monthly, not annually.",cf:"Monthly cash reconciliation catches discrepancies early.",deps:[13],enables:[29]},
-  { id:23,b:"B3",name:"Closing Procedures SOP",dept:"ops",tier:"medium",hrs:8,w:[2,4],impact:"med",prio:"cash",desc:"Standardise end-of-day: cash reconciliation, inventory logging, equipment, security.",pnl:"0.5–1% revenue protection from cash handling.",bs:"Protects daily cash asset.",cf:"EGP 500/day cash discrepancy = EGP 1.8M/year across branches.",deps:[13,14],enables:[29]},
-  { id:24,b:"B3",name:"Sales Mix Report per Branch",dept:"ops",tier:"quick",hrs:10,w:[1,2],impact:"high",prio:"rev",desc:"Track what each branch sells, at what margin.",pnl:"1–3% margin improvement via menu engineering.",bs:"Informs inventory stocking decisions.",cf:"Higher-margin sales mix = more cash per cover.",deps:[],enables:[26]},
-  { id:25,b:"B3",name:"Menu Items Guide (Prep Standards)",dept:"ops",tier:"moon",hrs:30,w:[3,11],impact:"med",prio:"cost",desc:"Full prep standards manual with photography of every plate.",pnl:"1–2% food cost reduction from portion control.",bs:"Improves inventory predictability.",cf:"Tighter portions = less cash consumed per dish.",deps:[8,12],enables:[]},
-  { id:26,b:"B3",name:"Marketing Review & Plan",dept:"ops",tier:"medium",hrs:12,w:[3,6],impact:"med",prio:"rev",desc:"Audit marketing spend, channels, ROI.",pnl:"15–30% marketing ROI improvement.",bs:"Reclassifies marketing assets.",cf:"Reduces upfront marketing cash drain.",deps:[15,24],enables:[]},
-  { id:27,b:"B3",name:"Discount Categories Audit & Policy",dept:"ops",tier:"medium",hrs:6,w:[3,4],impact:"med",prio:"rev",desc:"Review all discount types and authority.",pnl:"1–3% revenue recovery from capped discounting.",bs:"Pure revenue protection.",cf:"Recovered revenue flows directly to cash.",deps:[2],enables:[]},
-  { id:28,b:"B3",name:"Staff Meal Menu & Punching System",dept:"ops",tier:"medium",hrs:6,w:[3,4],impact:"low",prio:"cost",desc:"Dedicated staff menu and tracking system.",pnl:"0.5–1% food cost reduction.",bs:"Corrects inventory accuracy.",cf:"Reduces invisible daily cash drain.",deps:[21],enables:[]},
+  // W7+: Revenue & expense analysis after branch P&Ls exist
+  { id:15,b:"B2",name:"Revenue Analysis 2025/26 per Branch",dept:"finance",tier:"medium",hrs:12,w:[7,9],impact:"high",prio:"rev",desc:"Deep revenue trends by month, branch, category. Requires branch P&L baseline.",pnl:"3–8% revenue uplift from demand alignment.",bs:"Informs asset allocation decisions.",cf:"Reveals cash generation patterns by period.",deps:[2],enables:[]},
+  { id:16,b:"B2",name:"Detailed Expenses per Branch",dept:"finance",tier:"medium",hrs:12,w:[7,9],impact:"high",prio:"cost",desc:"Line-by-line expense breakdown per branch. Requires consolidated P&L for context.",pnl:"5–12% cost reduction on outlier categories.",bs:"May reveal unrecorded liabilities.",cf:"Targets exact expense lines consuming excess cash.",deps:[1,2],enables:[]},
+
+  // ── B3: Operational SOPs & Controls ──
+  // W1: immediate ops quick wins — no financial deps
+  { id:9,b:"B3",name:"Menu Review & Optimisation",dept:"ops",tier:"quick",hrs:8,w:[1,2],impact:"high",prio:"rev",desc:"Analyse menu for dead items, cannibalisation, complexity.",pnl:"2–4% revenue uplift. 1–2% food cost reduction.",bs:"Reduces raw material SKUs → lower inventory.",cf:"Faster inventory turns, fewer slow-moving items.",deps:[],enables:[10]},
+  { id:24,b:"B3",name:"Sales Mix Report per Branch",dept:"ops",tier:"quick",hrs:10,w:[1,2],impact:"high",prio:"rev",desc:"Track what each branch sells, at what margin.",pnl:"1–3% margin improvement via menu engineering.",bs:"Informs inventory stocking decisions.",cf:"Higher-margin sales mix = more cash per cover.",deps:[],enables:[]},
+  // W2: pricing after menu review
+  { id:10,b:"B3",name:"Pricing Structure Review",dept:"ops",tier:"quick",hrs:8,w:[2,3],impact:"high",prio:"rev",desc:"Audit every price against cost, competition, willingness-to-pay. Uses food costing and menu review outputs.",pnl:"1–3% revenue increase. Direct EBITDA improvement.",bs:"Pure income statement play. Improves retained earnings.",cf:"Immediate cash flow improvement.",deps:[9,8],enables:[]},
+  // W3: SOPs after stock take baseline
+  { id:14,b:"B3",name:"Random Inspection SOP",dept:"finance",tier:"medium",hrs:6,w:[3,4],impact:"med",prio:"cost",desc:"Formalise unannounced branch inspections — cash, inventory, food safety.",pnl:"1–3% reduction in shrinkage and cash discrepancies.",bs:"Protects inventory asset value.",cf:"Prevents ongoing cash leakage at branch level.",deps:[13],enables:[23]},
+  { id:22,b:"B3",name:"End-of-Month Inspection SOP",dept:"finance",tier:"medium",hrs:6,w:[3,4],impact:"med",prio:"cash",desc:"Standardise monthly close at branch level.",pnl:"Improves monthly P&L accuracy.",bs:"Ensures BS updated monthly, not annually.",cf:"Monthly cash reconciliation catches discrepancies early.",deps:[13],enables:[29]},
+  { id:23,b:"B3",name:"Closing Procedures SOP",dept:"ops",tier:"medium",hrs:8,w:[4,6],impact:"med",prio:"cash",desc:"Standardise end-of-day: cash reconciliation, inventory logging, equipment, security.",pnl:"0.5–1% revenue protection from cash handling.",bs:"Protects daily cash asset.",cf:"EGP 500/day cash discrepancy = EGP 1.8M/year across branches.",deps:[13,14],enables:[29]},
+  { id:27,b:"B3",name:"Discount Categories Audit & Policy",dept:"ops",tier:"medium",hrs:6,w:[5,6],impact:"med",prio:"rev",desc:"Review all discount types and authority. Requires branch P&L to quantify impact.",pnl:"1–3% revenue recovery from capped discounting.",bs:"Pure revenue protection.",cf:"Recovered revenue flows directly to cash.",deps:[2],enables:[]},
+  { id:28,b:"B3",name:"Staff Meal Menu & Punching System",dept:"ops",tier:"medium",hrs:6,w:[4,5],impact:"low",prio:"cost",desc:"Dedicated staff menu and tracking system.",pnl:"0.5–1% food cost reduction.",bs:"Corrects inventory accuracy.",cf:"Reduces invisible daily cash drain.",deps:[21],enables:[]},
+  { id:25,b:"B3",name:"Menu Items Guide (Prep Standards)",dept:"ops",tier:"moon",hrs:30,w:[5,11],impact:"med",prio:"cost",desc:"Full prep standards manual with photography of every plate.",pnl:"1–2% food cost reduction from portion control.",bs:"Improves inventory predictability.",cf:"Tighter portions = less cash consumed per dish.",deps:[8,12],enables:[]},
+
+  // ── B5: Reporting & Sustainability ──
+  // W1: HR audit — parallel, no financial deps
+  { id:11,b:"B5",name:"HR Structure, Policies & JD Review",dept:"hr",tier:"quick",hrs:14,w:[1,2],impact:"med",prio:"cost",desc:"Consolidate HR review: policies, job descriptions, org chart.",pnl:"5–10% labour reallocation opportunity.",bs:"Enables restructuring that reduces liability provisions.",cf:"Identifies overstaffing cash drain.",deps:[],enables:[30,37]},
+  { id:37,b:"B5",name:"Redundant Headcount Reduction",dept:"hr",tier:"quick",hrs:10,w:[2,4],impact:"high",prio:"cost",desc:"Identify and action redundant, duplicated, or unproductive roles.",pnl:"5–12% labour cost reduction on targeted roles.",bs:"Reduces accrued payroll liabilities.",cf:"Permanent monthly cash saving — immediate impact.",deps:[11],enables:[30]},
+  { id:30,b:"B5",name:"Salaries, Scale & Evaluations Review",dept:"hr",tier:"medium",hrs:14,w:[3,5],impact:"high",prio:"cost",desc:"Benchmark compensation vs. market.",pnl:"3–8% labour cost optimisation.",bs:"May reveal unrecorded payroll liabilities.",cf:"Right-sizing payroll = immediate monthly cash savings.",deps:[11,37],enables:[31,32]},
+  // W6+: deep HR docs after review complete
+  { id:31,b:"B5",name:"Policies & Procedures Manual",dept:"hr",tier:"moon",hrs:40,w:[6,11],impact:"high",prio:"cost",desc:"The operating bible — standardises every process across all departments.",pnl:"5–12% OpEx reduction from process standardisation.",bs:"Reduces contingent liabilities from compliance gaps.",cf:"Eliminates emergency spending and unplanned costs.",deps:[30],enables:[32]},
+  { id:32,b:"B5",name:"Job Descriptions (All Roles)",dept:"hr",tier:"moon",hrs:30,w:[6,11],impact:"high",prio:"cost",desc:"Role-specific JDs with KPIs and accountability.",pnl:"3–6% labour cost reduction.",bs:"Supports restructuring provisions.",cf:"Permanently lower monthly payroll outflow.",deps:[30],enables:[]},
+  // W8+: reporting cadence after branch P&Ls and SOPs exist
   { id:29,b:"B5",name:"Daily/Weekly/Monthly Financial Reports",dept:"finance",tier:"moon",hrs:20,w:[8,11],impact:"high",prio:"cash",desc:"Complete financial reporting cadence. Daily flash catches revenue drops on Day 1.",pnl:"5–10% faster response to P&L deviations.",bs:"Monthly BS reporting ensures continuous accuracy.",cf:"Daily cash reporting. Weekly forecast accuracy: ±30% → ±5%.",deps:[1,2,22],enables:[]},
-  { id:33,b:"B5",name:"Daily/Weekly/Monthly Ops Reports",dept:"ops",tier:"moon",hrs:16,w:[7,10],impact:"high",prio:"rev",desc:"Operational reporting: covers, average check, complaints, wait times, waste.",pnl:"3–8% improvement across operational P&L lines.",bs:"Validates inventory and asset utilisation.",cf:"Efficiency gains reduce daily cash burn.",deps:[2,23,24],enables:[]},
-  { id:11,b:"B5",name:"HR Structure, Policies & JD Review",dept:"hr",tier:"quick",hrs:14,w:[1,2],impact:"med",prio:"cost",desc:"Consolidate HR review: policies, job descriptions, org chart.",pnl:"5–10% labour reallocation opportunity.",bs:"Enables restructuring that reduces liability provisions.",cf:"Identifies overstaffing cash drain.",deps:[],enables:[30,31]},
-  { id:30,b:"B5",name:"Salaries, Scale & Evaluations Review",dept:"hr",tier:"medium",hrs:14,w:[2,4],impact:"high",prio:"cost",desc:"Benchmark compensation vs. market.",pnl:"3–8% labour cost optimisation.",bs:"May reveal unrecorded payroll liabilities.",cf:"Right-sizing payroll = immediate monthly cash savings.",deps:[11],enables:[31,32]},
-  { id:31,b:"B5",name:"Policies & Procedures Manual",dept:"hr",tier:"moon",hrs:40,w:[6,11],impact:"high",prio:"cost",desc:"The operating bible — standardises every process across all departments.",pnl:"5–12% OpEx reduction from process standardisation.",bs:"Reduces contingent liabilities from compliance gaps.",cf:"Eliminates emergency spending and unplanned costs.",deps:[11,30],enables:[32]},
-  { id:32,b:"B5",name:"Job Descriptions (All Roles)",dept:"hr",tier:"moon",hrs:30,w:[6,11],impact:"high",prio:"cost",desc:"Role-specific JDs with KPIs and accountability.",pnl:"3–6% labour cost reduction.",bs:"Supports restructuring provisions.",cf:"Permanently lower monthly payroll outflow.",deps:[11,30],enables:[]},
-  { id:36,b:"B1",name:"Accrued Revenue Collection from Branches",dept:"finance",tier:"quick",hrs:8,w:[1,2],impact:"high",prio:"cash",desc:"Identify and collect all accrued but uncollected revenues from branches.",pnl:"Recovers 1–4% of branch revenue previously unrecorded.",bs:"Converts accrued revenue asset into cash.",cf:"Immediate cash injection. On EGP 120M, even 1% = EGP 1.2M.",deps:[3,4],enables:[1,2,6]},
-  { id:37,b:"B5",name:"Redundant Headcount Reduction",dept:"hr",tier:"quick",hrs:10,w:[1,3],impact:"high",prio:"cost",desc:"Identify and action redundant, duplicated, or unproductive roles.",pnl:"5–12% labour cost reduction on targeted roles.",bs:"Reduces accrued payroll liabilities.",cf:"Permanent monthly cash saving — immediate impact.",deps:[11],enables:[30,31,32]},
+  { id:33,b:"B5",name:"Daily/Weekly/Monthly Ops Reports",dept:"ops",tier:"moon",hrs:16,w:[8,11],impact:"high",prio:"rev",desc:"Operational reporting: covers, average check, complaints, wait times, waste.",pnl:"3–8% improvement across operational P&L lines.",bs:"Validates inventory and asset utilisation.",cf:"Efficiency gains reduce daily cash burn.",deps:[2,23,24],enables:[]},
+
+  // ── B6: Deal Negotiations (parallel track) ──
+  { id:38,b:"B6",name:"Quick Commerce Renegotiation & New Deals",dept:"deals",tier:"quick",hrs:24,w:[1,4],impact:"high",prio:"rev",desc:"Renegotiate existing quick commerce agreements (Talabat, Noon, etc.).",pnl:"1–3pp commission reduction = EGP 1.2M–3.6M/year.",bs:"Reduces accrued platform liabilities.",cf:"Shorter settlement cycles inject cash faster.",deps:[],enables:[35]},
   { id:34,b:"B6",name:"Deal / Contract Analysis & Assessment",dept:"deals",tier:"medium",hrs:40,w:[1,4],impact:"high",prio:"cash",desc:"Deep analysis: financial terms, obligations, risk allocation, benchmarking.",pnl:"Prevents unfavourable terms costing 5–15% of deal value.",bs:"Assesses BS impact: lease obligations, guarantees, earnouts.",cf:"Models full cash flow implications: upfront, ongoing, exit costs.",deps:[],enables:[35]},
   { id:35,b:"B6",name:"Deal Negotiation & Counter-Proposal",dept:"deals",tier:"medium",hrs:40,w:[5,8],impact:"high",prio:"cash",desc:"Negotiation strategy, counter-proposals, protect financial interests.",pnl:"Improved terms protect long-term P&L.",bs:"Negotiated terms affect long-term liabilities.",cf:"Better payment terms improve cash.",deps:[34],enables:[]},
-  { id:38,b:"B6",name:"Quick Commerce Renegotiation & New Deals",dept:"deals",tier:"quick",hrs:24,w:[1,4],impact:"high",prio:"rev",desc:"Renegotiate existing quick commerce agreements (Talabat, Noon, etc.).",pnl:"1–3pp commission reduction = EGP 1.2M–3.6M/year.",bs:"Reduces accrued platform liabilities.",cf:"Shorter settlement cycles inject cash faster.",deps:[],enables:[35]},
+
+  // ── B7: Marketing & Sales Funnels ──
+  // W2: baseline audit after first data available
+  { id:39,b:"B7",name:"Marketing Audit & Baseline",dept:"ops",tier:"quick",hrs:10,w:[1,2],impact:"med",prio:"rev",desc:"Audit all existing digital channels: social media, GMB, Talabat/Noon listings, reviews. Establish baseline metrics before spending a pound.",pnl:"Uncovers wasted spend. Identifies zero-cost wins (GMB optimisation alone can drive 10–20% more foot traffic).",bs:"N/A — pure P&L play.",cf:"Stops bleeding on underperforming channels immediately.",deps:[],enables:[40,41]},
+  { id:40,b:"B7",name:"Brand Standardisation Across Branches",dept:"ops",tier:"quick",hrs:8,w:[2,3],impact:"med",prio:"rev",desc:"Standardise logo usage, photography style, social bio, and menu images across all 8 branches. Inconsistency erodes trust and conversions.",pnl:"Lifts conversion rate 5–10% by removing friction.",bs:"N/A.",cf:"Higher conversion per impression = lower effective CAC.",deps:[39],enables:[42]},
+  { id:41,b:"B7",name:"Google My Business Optimisation",dept:"ops",tier:"quick",hrs:6,w:[2,3],impact:"high",prio:"rev",desc:"Claim, verify, and fully optimise all 8 GMB listings: menus, photos, hours, Q&A, posts. Zero ad spend — highest ROI marketing activity.",pnl:"10–25% more walk-in traffic from local search.",bs:"N/A.",cf:"Drives direct covers with zero media cost.",deps:[39],enables:[]},
+  { id:42,b:"B7",name:"Paid Channel Test — Social & Search",dept:"ops",tier:"medium",hrs:12,w:[3,6],impact:"med",prio:"rev",desc:"Run controlled 2-week paid test: Instagram/TikTok ads + Google Search ads. Budget EGP 5–10K per branch. Measure cost per order and cost per cover before scaling.",pnl:"Tests which channels deliver positive ROI before committing budget.",bs:"N/A.",cf:"Identifies where to scale spend for maximum revenue return.",deps:[40],enables:[44]},
+  { id:43,b:"B7",name:"CRM & WhatsApp Loyalty Setup",dept:"ops",tier:"medium",hrs:10,w:[3,5],impact:"med",prio:"rev",desc:"Build customer database from POS + reservation data. Launch WhatsApp broadcast for existing customers — weekly offers, birthday deals, loyalty rewards.",pnl:"Repeat customer revenue is 5–7x cheaper to generate than new acquisition.",bs:"N/A.",cf:"Higher repeat rate = steadier weekly cash inflow.",deps:[39],enables:[44]},
+  { id:44,b:"B7",name:"Sales Funnel Reporting & Optimisation",dept:"ops",tier:"medium",hrs:8,w:[6,9],impact:"high",prio:"rev",desc:"Build monthly funnel dashboard: impressions → visits → orders → repeat rate. Review ROAS by channel. Reallocate budget from losers to winners every 4 weeks.",pnl:"15–30% marketing ROI improvement from disciplined optimisation.",bs:"N/A.",cf:"Reduces wasted ad spend — every EGP saved in CAC flows to EBITDA.",deps:[42,43],enables:[]},
+
+  // ── B8: Sales Incentive Scheme ──
+  // W2: HR data needed first
+  { id:45,b:"B8",name:"Salary & Role Benchmarking",dept:"hr",tier:"quick",hrs:8,w:[2,3],impact:"med",prio:"cost",desc:"Map every customer-facing role against market salary data. You cannot design a fair incentive scheme without knowing what the base looks like.",pnl:"Ensures incentives are additive, not substitutive — prevents gaming via base cuts.",bs:"N/A.",cf:"Sets the cash cost floor of the incentive programme.",deps:[11],enables:[46]},
+  { id:46,b:"B8",name:"Commission Structure Design",dept:"hr",tier:"medium",hrs:12,w:[3,5],impact:"high",prio:"rev",desc:"Design commission tiers: base salary + % of revenue above target. Build in accelerators at 110% and 125% of target. Cap total payout to protect EBITDA.",pnl:"Well-designed commissions drive 5–15% revenue uplift from front-of-house.",bs:"N/A.",cf:"Commission cost self-funds from incremental revenue generated.",deps:[45,2],enables:[47,48]},
+  { id:47,b:"B8",name:"KPI Bonus Framework",dept:"hr",tier:"medium",hrs:10,w:[5,7],impact:"high",prio:"rev",desc:"Define 6–8 KPI bonuses: avg check uplift, food cost control, review scores, upsell rate, shrinkage, repeat customer rate. Each must be measurable from existing systems.",pnl:"KPI bonuses drive margin-safe behaviour — not just top-line chasing.",bs:"N/A.",cf:"Bonus pool funded from the EBITDA improvement it generates.",deps:[46,1],enables:[49]},
+  { id:48,b:"B8",name:"Branch Leaderboard & Competition System",dept:"ops",tier:"medium",hrs:6,w:[5,7],impact:"med",prio:"rev",desc:"Monthly branch ranking: 5 weighted metrics (revenue vs target, EBITDA margin, avg check, review score, food cost%). Winner gets team bonus + recognition. Creates healthy competition.",pnl:"Leaderboard drives 3–8% improvement in bottom-quartile branches.",bs:"N/A.",cf:"Branch competition self-funds from performance uplift.",deps:[46],enables:[49]},
+  { id:49,b:"B8",name:"Incentive Scheme Launch & Training",dept:"hr",tier:"medium",hrs:12,w:[7,9],impact:"high",prio:"rev",desc:"Roll out to all branches: explain the scheme, set Month 1 targets, distribute scorecards. Train managers on how to track and motivate. Without launch, even perfect scheme design fails.",pnl:"Activation is where the P&L impact starts. Paper schemes deliver zero.",bs:"N/A.",cf:"Month 1 bonuses paid from Month 2 verified performance.",deps:[47,48],enables:[]},
 ];
 
 const milestoneFees = [
@@ -123,11 +163,13 @@ const requirements = [
 
 // Buckets without B4
 const buckets = [
-  { id:"B1",name:"Financial Visibility & Controls",color:"#1e40af",bg:"#eff6ff",bdr:"#bfdbfe",ico:"📊",tier:"quick",weeks:"1–7",primaryPrio:"cost",impactPills:[{p:"cash",v:"EGP 1.2M+",l:"Accrued collections"},{p:"cost",v:"EGP 3–8M",l:"Food & asset cost fix"},{p:"rev",v:"2–5%",l:"Unrecorded revenue"}],desc:"Establish the financial scoreboard. Bank reconciliation, transaction registration, food cost audit, and budget review begin immediately (W1–2). Consolidated P&L, branch P&L, and financial position scheduled for end of March — no opening stock exists, so meaningful financials require a full month of controlled data." },
-  { id:"B2",name:"Cost & Revenue Deep-Dive",color:"#a16207",bg:"#fffbeb",bdr:"#fde68a",ico:"🔍",tier:"medium",weeks:"2–9",primaryPrio:"cost",impactPills:[{p:"cost",v:"EGP 450K–1.35M",l:"Shrinkage control"},{p:"cost",v:"5–12%",l:"Branch expense cuts"},{p:"rev",v:"3–8%",l:"Revenue uplift"}],desc:"Stock take, menu costing, and purchases analysis begin immediately (W2–5). Deep revenue and expense analysis per branch follows once end-of-March P&L data is available (W7–9)." },
-  { id:"B3",name:"Operational SOPs & Controls",color:"#16653a",bg:"#f0fdf4",bdr:"#bbf7d0",ico:"⚙️",tier:"medium",weeks:"1–11",primaryPrio:"rev",impactPills:[{p:"rev",v:"EGP 1.2–6M",l:"Pricing & menu uplift"},{p:"rev",v:"1–3%",l:"Discount recovery"},{p:"cash",v:"EGP 1.8M/yr",l:"Daily cash leakage stopped"}],desc:"Translate financial findings into daily operational discipline. Sales mix report and menu/pricing reviews are immediate quick wins (W1–2). SOPs, inspections, and marketing follow (W2–6)." },
-  { id:"B5",name:"Reporting & Sustainability",color:"#7c3aed",bg:"#faf5ff",bdr:"#ddd6fe",ico:"📈",tier:"moon",weeks:"1–11",primaryPrio:"cost",impactPills:[{p:"cost",v:"EGP 120K+/yr",l:"Per redundant headcount removed"},{p:"cost",v:"3–8%",l:"Labour optimisation"},{p:"rev",v:"3–8%",l:"Ops P&L improvement"}],desc:"Reporting cadences, P&P manual, JDs, HR restructuring. The infrastructure that makes improvements permanent and creates accountability at every level." },
-  { id:"B6",name:"Deal Negotiations",color:"#0f766e",bg:"#f0fdfa",bdr:"#99f6e4",ico:"🤝",tier:"medium",weeks:"1–8",primaryPrio:"rev",impactPills:[{p:"rev",v:"EGP 1.2–3.6M/yr",l:"QC commission savings"},{p:"cash",v:"Faster",l:"Settlement cycles"},{p:"cash",v:"5–15%",l:"Deal value protected"}],desc:"Separate parallel track: counter-party deal analysis and negotiation. Month 1 = due diligence & risk mapping. Month 2 = negotiation strategy & term sheet." },
+  { id:"B1",name:"Financial Visibility & Controls",color:"#1e40af",bg:"#eff6ff",bdr:"#bfdbfe",ico:"📊",tier:"quick",weeks:"1–8",primaryPrio:"cost",impactPills:[{p:"cash",v:"EGP 1.2M+",l:"Accrued collections"},{p:"cost",v:"EGP 3–8M",l:"Food & asset cost fix"},{p:"rev",v:"2–5%",l:"Unrecorded revenue"}],desc:"Foundation layer. Bank reconciliation, transaction registration, food costing, and assets start W1. P&L per Branch comes first (W4–6) — branches must be clean before consolidating. Consolidated P&L follows (W6–8). Financial Position Statement last." },
+  { id:"B2",name:"Cost & Revenue Deep-Dive",color:"#a16207",bg:"#fffbeb",bdr:"#fde68a",ico:"🔍",tier:"medium",weeks:"2–9",primaryPrio:"cost",impactPills:[{p:"cost",v:"EGP 450K–1.35M",l:"Shrinkage control"},{p:"cost",v:"5–12%",l:"Branch expense cuts"},{p:"rev",v:"3–8%",l:"Revenue uplift"}],desc:"Stock take and menu costing start W2 once transactions are registered. Purchases analysis W3–5. Revenue and expense deep-dives wait until branch P&Ls are stable (W7–9)." },
+  { id:"B3",name:"Operational SOPs & Controls",color:"#16653a",bg:"#f0fdf4",bdr:"#bbf7d0",ico:"⚙️",tier:"medium",weeks:"1–11",primaryPrio:"rev",impactPills:[{p:"rev",v:"EGP 1.2–6M",l:"Pricing & menu uplift"},{p:"rev",v:"1–3%",l:"Discount recovery"},{p:"cash",v:"EGP 1.8M/yr",l:"Daily cash leakage stopped"}],desc:"Menu review, sales mix, and pricing are immediate W1–3 quick wins. SOPs (inspections, closing procedures) follow the stock take baseline in W3–6. Discount policy waits for branch P&L data." },
+  { id:"B5",name:"Reporting & Sustainability",color:"#7c3aed",bg:"#faf5ff",bdr:"#ddd6fe",ico:"📈",tier:"moon",weeks:"1–11",primaryPrio:"cost",impactPills:[{p:"cost",v:"EGP 120K+/yr",l:"Per redundant headcount removed"},{p:"cost",v:"3–8%",l:"Labour optimisation"},{p:"rev",v:"3–8%",l:"Ops P&L improvement"}],desc:"HR audit and headcount reduction are parallel W1 starts. Salary benchmarking W3–5. P&P manual and JDs W6–11. Financial and ops reporting cadences start W8 once underlying data is reliable." },
+  { id:"B6",name:"Deal Negotiations",color:"#0f766e",bg:"#f0fdfa",bdr:"#99f6e4",ico:"🤝",tier:"medium",weeks:"1–8",primaryPrio:"rev",impactPills:[{p:"rev",v:"EGP 1.2–3.6M/yr",l:"QC commission savings"},{p:"cash",v:"Faster",l:"Settlement cycles"},{p:"cash",v:"5–15%",l:"Deal value protected"}],desc:"Fully parallel track. QC renegotiation and contract analysis start W1. Counter-proposals and term sheets in Month 2 (W5–8)." },
+  { id:"B7",name:"Marketing & Sales Funnels",color:"#be185d",bg:"#fdf2f8",bdr:"#f9a8d4",ico:"📢",tier:"medium",weeks:"1–9",primaryPrio:"rev",impactPills:[{p:"rev",v:"10–25%",l:"More walk-ins from GMB"},{p:"rev",v:"5–7x",l:"Cheaper repeat vs new"},{p:"rev",v:"15–30%",l:"Marketing ROI uplift"}],desc:"Audit and GMB optimisation are zero-cost W1 wins. Brand standardisation W2–3. Paid channel testing W3–6 with controlled budgets. CRM/WhatsApp loyalty W3–5. Funnel reporting and optimisation W6–9." },
+  { id:"B8",name:"Sales Incentive Scheme",color:"#d97706",bg:"#fffbeb",bdr:"#fcd34d",ico:"🏆",tier:"medium",weeks:"2–9",primaryPrio:"rev",impactPills:[{p:"rev",v:"5–15%",l:"Front-of-house uplift"},{p:"cost",v:"3–8%",l:"Labour cost optimisation"},{p:"rev",v:"3–8%",l:"Bottom-quartile branch lift"}],desc:"Starts after HR audit (W1) provides salary baseline. Commission structure W3–5. KPI bonuses and leaderboard W5–7 (requires P&L data). Full scheme launch and training W7–9." },
 ];
 
 const WEEKS=[1,2,3,4,5,6,7,8,9,10,11,12];
@@ -221,6 +263,16 @@ const App = function App(){
   const [budgetBranch,setBudgetBranch]=useState(BRANCHES[0]);
   const [budgetMonth,setBudgetMonth]=useState(MONTHS_LIST[0]);
   const [editingBudget,setEditingBudget]=useState(null);
+
+  // Incentive scheme inputs
+  const [incentiveInputs,setIncentiveInputs]=useState({
+    branchMgrBase:11000, floorSupBase:6500, waiterBase:4000, qcBase:5000, hostBase:4500, salesMgrBase:15000,
+    avgMonthlyRevPerBranch:1250000, avgCheckTarget:250, coversPerMonth:5000,
+    foodCostTarget:36, qcRevenueShare:18,
+    commissionPct:2, accelerator110:2.5, accelerator125:3.5,
+    avgCheckBonus:2000, foodCostBonus:3000, reviewBonus:1500, upsellBonus:100,
+    leaderboardFirst:10000, leaderboardSecond:5000, leaderboardThird:2500,
+  });
   const [taskFilter,setTaskFilter]=useState("all");
   const [commentFilter,setCommentFilter]=useState("all");
 
@@ -406,7 +458,7 @@ const App = function App(){
       <div style={{maxWidth:1100,margin:"0 auto",padding:"14px 24px"}}>
         {/* NAV */}
         <div style={{display:"flex",gap:2,marginBottom:14,background:"#fff",borderRadius:7,padding:3,width:"fit-content",border:"1px solid #e5e1dc",flexWrap:"wrap"}}>
-          {[["overview","Overview"],["buckets","Engagement Buckets"],["timeline","Timeline"],["pricing","Monthly Pricing"],["success","Success Fees"],["market","Market Comparison"],["budget","Budget vs Actual"],["notes","Comments & Tasks"],["reqs","Requirements"],["marketing","Marketing \& Funnels"],["incentive","Sales Incentives"]].map(([k,l])=>(
+          {[["overview","Overview"],["buckets","Engagement Buckets"],["timeline","Timeline"],["pricing","Monthly Pricing"],["success","Success Fees"],["market","Market Comparison"],["budget","Budget vs Actual"],["notes","Comments & Tasks"],["reqs","Requirements"]].map(([k,l])=>(
             <button key={k} onClick={()=>setView(k)} style={{fontFamily:sans,padding:"5px 11px",borderRadius:5,border:"none",background:view===k?"#333":"transparent",color:view===k?"#fff":"#999",fontSize:10.5,fontWeight:700,cursor:"pointer",position:"relative"}}>
               {l}
               {k==="notes"&&comments.filter(c=>c.status==="Open").length>0&&<span style={{position:"absolute",top:1,right:1,width:6,height:6,borderRadius:"50%",background:"#dc2626"}}/>}
@@ -524,6 +576,116 @@ const App = function App(){
                 </div>
               </div>
               {isOpen&&<div style={{marginTop:12,paddingTop:12,borderTop:`1px solid ${b.bdr}`}}>
+                {/* B8 Incentive Inputs Panel */}
+                {b.id==="B8"&&<div style={{background:"#fffbeb",border:"1px solid #fcd34d",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
+                  <div style={{fontFamily:disp,fontSize:12,fontWeight:700,color:"#d97706",marginBottom:3}}>🎛 Incentive Scheme Inputs — Update as data becomes available</div>
+                  <div style={{fontFamily:mono,fontSize:8.5,color:"#92400e",marginBottom:10}}>These inputs drive the commission calculations below. Fill in as you get actuals from branches.</div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:8,marginBottom:12}}>
+                    {[
+                      {label:"Branch Mgr Base Salary (EGP/mo)",key:"branchMgrBase",type:"number"},
+                      {label:"Floor Supervisor Base (EGP/mo)",key:"floorSupBase",type:"number"},
+                      {label:"Waiter Base Salary (EGP/mo)",key:"waiterBase",type:"number"},
+                      {label:"QC Coordinator Base (EGP/mo)",key:"qcBase",type:"number"},
+                      {label:"Host/Reservations Base (EGP/mo)",key:"hostBase",type:"number"},
+                      {label:"Sales Manager Base (EGP/mo)",key:"salesMgrBase",type:"number"},
+                      {label:"Avg Monthly Revenue / Branch (EGP)",key:"avgMonthlyRevPerBranch",type:"number"},
+                      {label:"Average Check Target (EGP)",key:"avgCheckTarget",type:"number"},
+                      {label:"Estimated Covers / Month / Branch",key:"coversPerMonth",type:"number"},
+                      {label:"Food Cost Target (%)",key:"foodCostTarget",type:"number"},
+                      {label:"QC Revenue as % of Total",key:"qcRevenueShare",type:"number"},
+                    ].map(({label,key,type})=>(
+                      <div key={key}>
+                        <div style={{fontFamily:mono,fontSize:7.5,color:"#92400e",letterSpacing:1,marginBottom:3}}>{label.toUpperCase()}</div>
+                        <input type={type} value={incentiveInputs[key]} onChange={e=>setIncentiveInputs(p=>({...p,[key]:Number(e.target.value)}))}
+                          style={{width:"100%",padding:"5px 8px",border:"1px solid #fcd34d",borderRadius:4,fontFamily:mono,fontSize:11,background:"#fff",boxSizing:"border-box"}}/>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{fontFamily:disp,fontSize:12,fontWeight:700,color:"#d97706",marginBottom:8}}>Commission Structure</div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:8,marginBottom:12}}>
+                    {[
+                      {label:"Branch Mgr Commission % of EBITDA uplift",key:"commissionPct"},
+                      {label:"Accelerator at 110% target (%)",key:"accelerator110"},
+                      {label:"Accelerator at 125% target (%)",key:"accelerator125"},
+                    ].map(({label,key})=>(
+                      <div key={key}>
+                        <div style={{fontFamily:mono,fontSize:7.5,color:"#92400e",letterSpacing:1,marginBottom:3}}>{label.toUpperCase()}</div>
+                        <input type="number" value={incentiveInputs[key]} onChange={e=>setIncentiveInputs(p=>({...p,[key]:Number(e.target.value)}))}
+                          style={{width:"100%",padding:"5px 8px",border:"1px solid #fcd34d",borderRadius:4,fontFamily:mono,fontSize:11,background:"#fff",boxSizing:"border-box"}}/>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{fontFamily:disp,fontSize:12,fontWeight:700,color:"#d97706",marginBottom:8}}>KPI Bonus Amounts (EGP)</div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:8,marginBottom:12}}>
+                    {[
+                      {label:"Avg Check Uplift Bonus (per branch mgr)",key:"avgCheckBonus"},
+                      {label:"Food Cost Below Target Bonus",key:"foodCostBonus"},
+                      {label:"Customer Review Score Bonus",key:"reviewBonus"},
+                      {label:"Upsell Rate Bonus (per waiter/week)",key:"upsellBonus"},
+                      {label:"Leaderboard 1st Place (team)",key:"leaderboardFirst"},
+                      {label:"Leaderboard 2nd Place (team)",key:"leaderboardSecond"},
+                      {label:"Leaderboard 3rd Place (team)",key:"leaderboardThird"},
+                    ].map(({label,key})=>(
+                      <div key={key}>
+                        <div style={{fontFamily:mono,fontSize:7.5,color:"#92400e",letterSpacing:1,marginBottom:3}}>{label.toUpperCase()}</div>
+                        <input type="number" value={incentiveInputs[key]} onChange={e=>setIncentiveInputs(p=>({...p,[key]:Number(e.target.value)}))}
+                          style={{width:"100%",padding:"5px 8px",border:"1px solid #fcd34d",borderRadius:4,fontFamily:mono,fontSize:11,background:"#fff",boxSizing:"border-box"}}/>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Live calculated outputs */}
+                  <div style={{fontFamily:disp,fontSize:12,fontWeight:700,color:"#d97706",marginBottom:8}}>📊 Calculated Scheme Outputs (per branch, per month)</div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:8}}>
+                    {(()=>{
+                      const revTarget = incentiveInputs.avgMonthlyRevPerBranch;
+                      const ebitdaUpliftEst = revTarget * 0.03; // assume 3% EBITDA improvement
+                      const mgrComm = ebitdaUpliftEst * (incentiveInputs.commissionPct/100);
+                      const mgrComm110 = ebitdaUpliftEst * (incentiveInputs.accelerator110/100);
+                      const mgrComm125 = ebitdaUpliftEst * (incentiveInputs.accelerator125/100);
+                      const totalBonusPool = incentiveInputs.avgCheckBonus + incentiveInputs.foodCostBonus + incentiveInputs.reviewBonus + (incentiveInputs.upsellBonus * 4 * 5); // 4 weeks, ~5 waiters
+                      const maxMonthlyPayout = mgrComm125 + totalBonusPool + (incentiveInputs.leaderboardFirst/8);
+                      const roiMultiple = revTarget * 0.05 / Math.max(maxMonthlyPayout, 1);
+                      return [
+                        {l:"Est. Branch Mgr Commission (base)",v:`EGP ${Math.round(mgrComm).toLocaleString()}`,c:"#16653a"},
+                        {l:"At 110% Target",v:`EGP ${Math.round(mgrComm110).toLocaleString()}`,c:"#a16207"},
+                        {l:"At 125% Target",v:`EGP ${Math.round(mgrComm125).toLocaleString()}`,c:"#1e40af"},
+                        {l:"Monthly KPI Bonus Pool",v:`EGP ${Math.round(totalBonusPool).toLocaleString()}`,c:"#7c3aed"},
+                        {l:"Max Monthly Payout / Branch",v:`EGP ${Math.round(maxMonthlyPayout).toLocaleString()}`,c:"#dc2626"},
+                        {l:"Scheme ROI (5% uplift / max payout)",v:`${Math.round(roiMultiple)}x`,c:roiMultiple>3?"#16653a":"#dc2626"},
+                      ].map((s,i)=>(
+                        <div key={i} style={{background:"#fff",borderRadius:6,padding:"10px 12px",border:"1px solid #fde68a"}}>
+                          <div style={{fontFamily:mono,fontSize:7.5,color:"#92400e",letterSpacing:1,marginBottom:2}}>{s.l.toUpperCase()}</div>
+                          <div style={{fontFamily:disp,fontSize:16,fontWeight:800,color:s.c}}>{s.v}</div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                </div>}
+
+                {/* B7 Marketing Funnel Summary */}
+                {b.id==="B7"&&<div style={{background:"#fdf2f8",border:"1px solid #f9a8d4",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
+                  <div style={{fontFamily:disp,fontSize:12,fontWeight:700,color:"#be185d",marginBottom:8}}>📊 Funnel Conversion Targets — F&B Egypt Benchmarks</div>
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))",gap:8,marginBottom:10}}>
+                    {[
+                      {stage:"Impressions → Profile Visit",bench:"2–5%",target:"4%+",c:"#1e40af"},
+                      {stage:"Profile Visit → Menu View / Order",bench:"30–50%",target:"45%+",c:"#a16207"},
+                      {stage:"Menu View → Order / Cover",bench:"5–15%",target:"12%+",c:"#16653a"},
+                      {stage:"First Visit → Repeat (30 days)",bench:"20–35%",target:"40%+",c:"#7c3aed"},
+                      {stage:"Repeat → Loyal (5+ visits/yr)",bench:"10–20%",target:"20%+",c:"#be185d"},
+                      {stage:"Average Order Value Growth",bench:"Market flat",target:"+15% YoY",c:"#dc2626"},
+                    ].map((m,i)=>(
+                      <div key={i} style={{background:"#fff",borderRadius:6,padding:"8px 10px",borderLeft:`3px solid ${m.c}`}}>
+                        <div style={{fontFamily:sans,fontSize:9.5,color:"#666",marginBottom:4}}>{m.stage}</div>
+                        <div style={{display:"flex",justifyContent:"space-between"}}>
+                          <div><div style={{fontFamily:mono,fontSize:7,color:"#999",letterSpacing:1}}>BENCHMARK</div><div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#aaa"}}>{m.bench}</div></div>
+                          <div style={{textAlign:"right"}}><div style={{fontFamily:mono,fontSize:7,color:"#999",letterSpacing:1}}>TARGET</div><div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:m.c}}>{m.target}</div></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{fontFamily:mono,fontSize:8.5,color:"#be185d"}}>⚠ Funnel conversion data will be populated once CRM, GMB analytics, and POS data are connected (W3–5)</div>
+                </div>}
+
                 {groups.map(g=>{const pr=PRIO[g.key];return(
                   <div key={g.key} style={{marginBottom:8}}>
                     <div style={{display:"flex",alignItems:"center",gap:5,padding:"4px 8px",background:pr.bg,borderRadius:5,marginBottom:4,borderLeft:`3px solid ${pr.c}`}}>
@@ -1140,251 +1302,6 @@ const App = function App(){
           </div>
         </div>
       </div>}
-
-        {/* ═══ MARKETING & FUNNELS ═══ */}
-        {view==="marketing"&&<div>
-          <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1.5,marginBottom:8}}>MARKETING & SALES FUNNELS</div>
-
-          {/* Funnel Overview Cards */}
-          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:10,marginBottom:16}}>
-            {[
-              {label:"Awareness",icon:"📢",channels:["Social Media (IG/TikTok)","Google Ads","Influencer Partnerships","PR & Press"],color:"#1e40af",bg:"#eff6ff",kpi:"Reach & Impressions",target:"500K+/month"},
-              {label:"Consideration",icon:"🔍",channels:["Google My Business","Menu on Talabat/Noon","Website & SEO","Reviews & Ratings"],color:"#a16207",bg:"#fffbeb",kpi:"Profile Views & Clicks",target:"50K+/month"},
-              {label:"Conversion",icon:"🛒",channels:["Promotions & Offers","Loyalty Programme","Direct Reservations","QC Platform Orders"],color:"#16653a",bg:"#f0fdf4",kpi:"Orders & Covers",target:"Avg check EGP 250+"},
-              {label:"Retention",icon:"💛",channels:["CRM & WhatsApp","Loyalty Points","Birthday/Anniversary","Staff Recognition"],color:"#7c3aed",bg:"#faf5ff",kpi:"Repeat Visit Rate",target:"40%+ repeat customers"},
-            ].map((f,i)=>(
-              <div key={i} style={{background:f.bg,border:`1px solid`,borderColor:f.color+"33",borderLeft:`4px solid ${f.color}`,borderRadius:8,padding:"12px 14px"}}>
-                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
-                  <span style={{fontSize:18}}>{f.icon}</span>
-                  <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:f.color}}>{f.label}</div>
-                </div>
-                {f.channels.map((c,j)=><div key={j} style={{fontFamily:sans,fontSize:10.5,color:"#555",padding:"2px 0",borderBottom:"1px solid #f0ede8"}}>• {c}</div>)}
-                <div style={{marginTop:8,display:"flex",justifyContent:"space-between"}}>
-                  <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1}}>{f.kpi}</div>
-                  <div style={{fontFamily:mono,fontSize:9,color:f.color,fontWeight:700}}>{f.target}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Channel Mix & Budget */}
-          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
-            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:10}}>Recommended Channel Mix & Budget Allocation</div>
-            <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse",fontFamily:sans,fontSize:11}}>
-                <thead>
-                  <tr style={{background:"#f5f3f0"}}>
-                    {["Channel","Type","Monthly Budget (EGP)","Expected Reach","Primary KPI","ROI Potential"].map((h,i)=>(
-                      <th key={i} style={{padding:"6px 10px",textAlign:"left",fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1,borderBottom:"1px solid #e5e1dc",fontWeight:600}}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ["Instagram / TikTok Ads","Paid Social","15,000–25,000","80K–200K users","Reach, Saves, Profile visits","3–5x"],
-                    ["Google Ads (Search+Maps)","Paid Search","10,000–20,000","20K–60K searches","Clicks, Direction requests","4–7x"],
-                    ["Influencer Marketing","Earned/Paid","10,000–30,000","50K–500K views","Impressions, New followers","2–4x"],
-                    ["Talabat / Noon Ads","Platform Promo","8,000–15,000","30K–100K views","Orders, GMV","5–10x"],
-                    ["Google My Business","Organic","0 (time only)","10K–30K searches","Reviews, Directions","High"],
-                    ["Email / WhatsApp CRM","Retention","3,000–5,000","Existing base","Open rate, Repeat visits","8–15x"],
-                    ["PR & Press","Earned","5,000–10,000","Broad","Brand mentions","Hard to measure"],
-                  ].map((row,i)=>(
-                    <tr key={i} style={{borderBottom:"1px solid #f0ede8",background:i%2===0?"#fff":"#fafaf8"}}>
-                      {row.map((cell,j)=>(
-                        <td key={j} style={{padding:"7px 10px",color:j===0?"#222":"#555",fontWeight:j===0?600:400}}>{cell}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Sales Funnel Metrics */}
-          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
-            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:10}}>Sales Funnel Conversion Benchmarks — F&B Egypt</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:8}}>
-              {[
-                {stage:"Impressions → Profile Visit",benchmark:"2–5%",target:"4%+",color:"#1e40af"},
-                {stage:"Profile Visit → Menu View",benchmark:"30–50%",target:"45%+",color:"#a16207"},
-                {stage:"Menu View → Order/Reservation",benchmark:"5–15%",target:"12%+",color:"#16653a"},
-                {stage:"First Visit → Repeat Visit",benchmark:"20–35%",target:"40%+",color:"#7c3aed"},
-                {stage:"Repeat → Loyal (5+ visits)",benchmark:"10–20%",target:"20%+",color:"#be185d"},
-                {stage:"Avg Order Value Growth",benchmark:"Market flat",target:"+15% YoY",color:"#dc2626"},
-              ].map((m,i)=>(
-                <div key={i} style={{background:"#f9f8f6",borderRadius:6,padding:"10px 12px",borderLeft:`3px solid ${m.color}`}}>
-                  <div style={{fontFamily:sans,fontSize:10,color:"#666",marginBottom:4}}>{m.stage}</div>
-                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                    <div><div style={{fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:1}}>BENCHMARK</div><div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#888"}}>{m.benchmark}</div></div>
-                    <div style={{textAlign:"right"}}><div style={{fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:1}}>OUR TARGET</div><div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:m.color}}>{m.target}</div></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Marketing Action Plan */}
-          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"14px 16px"}}>
-            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:10}}>90-Day Marketing Action Plan</div>
-            {[
-              {phase:"Month 1 — Audit & Foundation",color:"#dc2626",items:[
-                "Audit existing social accounts, GMB listings, and review profiles across all 8 branches",
-                "Standardise brand assets: logo, photography style, menu photography (all branches)",
-                "Set up CRM / WhatsApp broadcast list from existing customer database",
-                "Claim and optimise all Google My Business listings — photos, hours, menus",
-                "Benchmark current baseline: followers, ratings, monthly orders per channel",
-              ]},
-              {phase:"Month 2 — Activate & Test",color:"#a16207",items:[
-                "Launch paid social campaigns (IG/TikTok) — 2-week test per branch, EGP 5K budget",
-                "Run Google Ads for top 3 revenue branches — search + maps",
-                "Activate Talabat/Noon promotional placements for quick commerce revenue push",
-                "Onboard 2 micro-influencers per branch (10K–100K followers, food niche)",
-                "Launch WhatsApp loyalty broadcast — weekly deal to existing customers",
-              ]},
-              {phase:"Month 3 — Optimise & Scale",color:"#16653a",items:[
-                "Analyse Month 1–2 data: identify top-performing channels per branch",
-                "Reallocate budget to highest-ROI channels; cut underperformers",
-                "Launch referral programme: 'Bring a friend, get X% off' across branches",
-                "Introduce seasonal/Ramadan campaign if timing aligns",
-                "Report: revenue attributable to marketing vs. baseline",
-              ]},
-            ].map((ph,i)=>(
-              <div key={i} style={{marginBottom:12,borderLeft:`3px solid ${ph.color}`,paddingLeft:12}}>
-                <div style={{fontFamily:disp,fontSize:12,fontWeight:700,color:ph.color,marginBottom:6}}>{ph.phase}</div>
-                {ph.items.map((item,j)=>(
-                  <div key={j} style={{fontFamily:sans,fontSize:10.5,color:"#555",padding:"3px 0",display:"flex",gap:6}}>
-                    <span style={{color:ph.color,fontWeight:700,flexShrink:0}}>→</span>{item}
-                  </div>
-                ))}
-              </div>
-            ))}
-          </div>
-        </div>}
-
-        {/* ═══ SALES INCENTIVES ═══ */}
-        {view==="incentive"&&<div>
-          <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1.5,marginBottom:8}}>SALES TEAM INCENTIVE SCHEME</div>
-
-          {/* Philosophy */}
-          <div style={{background:"#fff",border:"1px solid #fecaca",borderLeft:"4px solid #dc2626",borderRadius:8,padding:"12px 16px",marginBottom:12}}>
-            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#dc2626",marginBottom:4}}>Design Philosophy</div>
-            <div style={{fontFamily:sans,fontSize:11,color:"#444",lineHeight:1.6}}>Incentives must drive <strong>revenue growth</strong>, <strong>margin protection</strong>, and <strong>repeat customer behaviour</strong> — not just covers or top-line sales. Every scheme here ties individual performance to branch-level EBITDA improvement, preventing the trap of high revenue at poor margin.</div>
-          </div>
-
-          {/* Roles & Tiers */}
-          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
-            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:10}}>Role Tiers & Base Commission Structure</div>
-            <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse",fontFamily:sans,fontSize:11}}>
-                <thead>
-                  <tr style={{background:"#f5f3f0"}}>
-                    {["Role","Base Salary Range","Commission Base","Accelerator (110%+ target)","Accelerator (125%+ target)","Cap"].map((h,i)=>(
-                      <th key={i} style={{padding:"6px 10px",textAlign:"left",fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1,borderBottom:"1px solid #e5e1dc",fontWeight:600}}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    ["Branch Manager","EGP 8,000–14,000","2% of branch EBITDA improvement","2.5% (bonus tier)","3.5% (stretch tier)","EGP 25,000/month"],
-                    ["Floor Supervisor","EGP 5,000–8,000","1% of branch revenue above target","1.25%","1.75%","EGP 12,000/month"],
-                    ["Waiter / Service Staff","EGP 3,000–5,000","EGP 50 per table above EGP 300 avg check","EGP 75/table","EGP 100/table","EGP 6,000/month"],
-                    ["QC Coordinator (Delivery)","EGP 4,000–6,000","0.5% of QC revenue above target","0.75%","1%","EGP 8,000/month"],
-                    ["Reservations / Host","EGP 3,500–5,500","EGP 25/cover for pre-booked tables","EGP 35/cover","EGP 50/cover","EGP 5,000/month"],
-                    ["Sales Manager (Central)","EGP 12,000–18,000","1.5% of total revenue above group target","2%","3%","EGP 30,000/month"],
-                  ].map((row,i)=>(
-                    <tr key={i} style={{borderBottom:"1px solid #f0ede8",background:i%2===0?"#fff":"#fafaf8"}}>
-                      {row.map((cell,j)=>(
-                        <td key={j} style={{padding:"7px 10px",color:j===0?"#222":"#555",fontWeight:j===0?600:400}}>{cell}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* KPI Bonuses */}
-          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
-            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:10}}>KPI-Based Bonus Triggers</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:8}}>
-              {[
-                {kpi:"Average Check Uplift",desc:"Branch avg check grows ≥ 10% vs prior month",bonus:"EGP 2,000 per branch manager",icon:"📈",color:"#16653a"},
-                {kpi:"Food Cost Below Target",desc:"Branch FC% ≤ target for 2 consecutive months",bonus:"EGP 3,000 per branch manager",icon:"🍽",color:"#a16207"},
-                {kpi:"Customer Review Score",desc:"Google rating reaches 4.5+ or improves by 0.3",bonus:"EGP 1,500 team bonus (split equally)",icon:"⭐",color:"#ca8a04"},
-                {kpi:"Upsell Rate",desc:"Dessert/drink attach rate ≥ 40% of dine-in covers",bonus:"EGP 100/waiter per week at target",icon:"🥂",color:"#7c3aed"},
-                {kpi:"Zero Shrinkage Month",desc:"Stock variance < 0.5% for the month",bonus:"EGP 2,500 ops team bonus",icon:"📦",color:"#1e40af"},
-                {kpi:"QC Order Growth",desc:"QC revenue grows ≥ 15% month-on-month",bonus:"EGP 1,500 QC coordinator bonus",icon:"🛵",color:"#be185d"},
-                {kpi:"Loyalty Sign-ups",desc:"≥ 50 new loyalty members registered in the month",bonus:"EGP 500 host/reservations bonus",icon:"💛",color:"#dc2626"},
-                {kpi:"Repeat Visit Rate",desc:"Measurable repeat customer rate ≥ 35%",bonus:"EGP 1,000 floor team bonus",icon:"🔄",color:"#0f766e"},
-              ].map((b,i)=>(
-                <div key={i} style={{background:"#f9f8f6",borderRadius:6,padding:"10px 12px",borderLeft:`3px solid ${b.color}`}}>
-                  <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:4}}>
-                    <span style={{fontSize:16}}>{b.icon}</span>
-                    <div style={{fontFamily:disp,fontSize:11,fontWeight:700,color:b.color}}>{b.kpi}</div>
-                  </div>
-                  <div style={{fontFamily:sans,fontSize:10,color:"#666",marginBottom:6}}>{b.desc}</div>
-                  <div style={{fontFamily:mono,fontSize:9,color:b.color,fontWeight:700}}>{b.bonus}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Leaderboard Structure */}
-          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
-            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:10}}>Monthly Branch Leaderboard — Competition Structure</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:12}}>
-              {[
-                {rank:"🥇 1st Place",prize:"EGP 10,000 team bonus + Trophy + Group recognition",bg:"#fef9c3",bdr:"#ca8a04"},
-                {rank:"🥈 2nd Place",prize:"EGP 5,000 team bonus + Certificate",bg:"#f1f5f9",bdr:"#94a3b8"},
-                {rank:"🥉 3rd Place",prize:"EGP 2,500 team bonus + Recognition",bg:"#fff7ed",bdr:"#c2410c"},
-              ].map((r,i)=>(
-                <div key={i} style={{background:r.bg,border:`1px solid ${r.bdr}`,borderRadius:8,padding:"12px 14px",textAlign:"center"}}>
-                  <div style={{fontFamily:disp,fontSize:14,fontWeight:700,marginBottom:6}}>{r.rank}</div>
-                  <div style={{fontFamily:sans,fontSize:10.5,color:"#555"}}>{r.prize}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{fontFamily:sans,fontSize:11,color:"#555",marginBottom:8}}><strong>Scoring formula:</strong> Each branch scored monthly across 5 weighted metrics:</div>
-            {[
-              ["Revenue vs Target",25],
-              ["EBITDA Margin",30],
-              ["Average Check vs Target",15],
-              ["Customer Rating (Google/Talabat)",15],
-              ["Food Cost % vs Target",15],
-            ].map(([metric,weight],i)=>(
-              <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
-                <div style={{fontFamily:sans,fontSize:10.5,color:"#444",width:220,flexShrink:0}}>{metric}</div>
-                <div style={{flex:1,background:"#f0ede8",borderRadius:4,height:8,overflow:"hidden"}}>
-                  <div style={{width:`${weight*4}%`,height:"100%",background:"#D4863A",borderRadius:4}}/>
-                </div>
-                <div style={{fontFamily:mono,fontSize:9,color:"#D4863A",fontWeight:700,width:40,textAlign:"right"}}>{weight}%</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Guardrails */}
-          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"14px 16px"}}>
-            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:8}}>Scheme Guardrails & Anti-Gaming Rules</div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(250px,1fr))",gap:8}}>
-              {[
-                {rule:"Commission only paid if branch FC% ≤ target",reason:"Prevents revenue chasing at margin expense",icon:"🔒"},
-                {rule:"No bonus if shrinkage > 2% that month",reason:"Protects inventory integrity",icon:"🔒"},
-                {rule:"Avg check target resets monthly (no sandbagging)",reason:"Prevents holding back performance",icon:"🔒"},
-                {rule:"QC commissions net of platform fees",reason:"Commissions on actual realised revenue only",icon:"🔒"},
-                {rule:"Disputes reviewed by C² + CFO jointly",reason:"Independent verification prevents manipulation",icon:"🔒"},
-                {rule:"All bonuses paid on 15th of following month",reason:"Aligns with P&L close and verification",icon:"🔒"},
-              ].map((g,i)=>(
-                <div key={i} style={{display:"flex",gap:8,padding:"8px 10px",background:"#f9f8f6",borderRadius:6,alignItems:"flex-start"}}>
-                  <span style={{fontSize:14,flexShrink:0}}>{g.icon}</span>
-                  <div>
-                    <div style={{fontFamily:sans,fontSize:10.5,fontWeight:600,color:"#222",marginBottom:2}}>{g.rule}</div>
-                    <div style={{fontFamily:sans,fontSize:9.5,color:"#888"}}>{g.reason}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>}
 
       </div>
   );
