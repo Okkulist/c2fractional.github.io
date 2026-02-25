@@ -1532,7 +1532,7 @@ const App = function App(){
                 {[
                   {phase:"Pre-Ramadan (2–3 weeks before)",color:"#dc2626",icon:"🌙",items:[
                     "Update all GMB listings with Ramadan hours, Iftar menu, and Suhoor offering across all 8 branches",
-                    `Launch Instagram/TikTok teaser content: Iftar table setups, chef prep, family atmosphere — EGP ${activeChs.find(([k])=>k==="social")?Number(activeChs.find(([k])=>k==="social")[1].budget).toLocaleString():8000} budget`,
+                    `Launch Instagram/TikTok teaser content: Iftar table setups, chef prep, family atmosphere — EGP ${Number(mktPlan.channels.social?.budget||8000).toLocaleString()} budget`,
                     "Set up WhatsApp broadcast list — send Ramadan Mubarak offer to full customer database",
                     "Negotiate Talabat Ramadan placement package and Iftar bundle pricing",
                     "Brief all branch teams: Ramadan service standards, Iftar pacing, Suhoor timing",
@@ -1540,14 +1540,14 @@ const App = function App(){
                   {phase:"Ramadan Week 1–2 — Launch & Test",color:"#a16207",icon:"⭐",items:[
                     `Activate all ${Object.values(mktPlan.channels).filter(c=>c.active).length} channels simultaneously — monitor daily ROAS from Day 3`,
                     "Run Google Ads for 'Iftar near me', 'Ramadan buffet Cairo', 'Suhoor restaurants Cairo'",
-                    `Food influencer Iftar content — EGP ${activeChs.find(([k])=>k==="influencer")?Number(activeChs.find(([k])=>k==="influencer")[1].budget).toLocaleString():12000} — target 100K–1M food accounts`,
+                    `Food influencer Iftar content — EGP ${Number(mktPlan.channels.influencer?.budget||12000).toLocaleString()} — target 100K–1M food accounts`,
                     "Track: covers per session, avg check, delivery orders, ROAS per channel — daily flash report",
                     "Corporate Iftar outreach: target companies in 500m radius of each branch",
                   ]},
                   {phase:"Ramadan Week 3–4 — Optimise & Push",color:"#16653a",icon:"✨",items:[
                     "Reallocate budget from any channel under 3× ROAS to channels above 5×",
                     `By mid-Ramadan: CRM retention push — WhatsApp offer to customers who visited in W1–2 to return`,
-                    `Last 10 nights (العشر الأواخر) — highest spending period. Increase ${activeChs.find(([k])=>k==="social")?activeChs.find(([k])=>k==="social")[1].name:"social"} budget by 30%`,
+                    `Last 10 nights (العشر الأواخر) — highest spending period. Increase ${mktPlan.channels.social?.name||"Instagram/TikTok"} budget by 30%`,
                     "Suhoor push: late-night delivery promotions on Talabat/Noon 12am–2am",
                     "Collect reviews: WhatsApp prompt after Iftar — target 50+ new reviews per branch",
                   ]},
