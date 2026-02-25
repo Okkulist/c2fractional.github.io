@@ -1785,6 +1785,228 @@ const App = function App(){
         </div>
       </div>}
 
+      {/* ═══ CLAUDE AGENT ═══ */}
+      {(()=>{
+        const [agentOpen,setAgentOpen]=React.useState(false);
+        const [agentMsgs,setAgentMsgs]=React.useState([{role:"assistant",content:"Hi! I'm your C² dashboard assistant. I can answer questions about any section or edit values directly — budgets, tasks, marketing inputs, pricing, and more. What do you need?"}]);
+        const [agentInput,setAgentInput]=React.useState("");
+        const [agentLoading,setAgentLoading]=React.useState(false);
+        const [agentError,setAgentError]=React.useState("");
+        const msgEndRef=React.useRef(null);
+        React.useEffect(()=>{if(agentOpen&&msgEndRef.current)msgEndRef.current.scrollIntoView({behavior:"smooth"});},[agentMsgs,agentOpen]);
+
+        const SYSTEM=`You are an embedded assistant inside the C² Fractional Management dashboard for Abou Shakra, an Egyptian F&B group with 8 branches doing EGP 120M/year. You have full read access to all dashboard state and can edit any value by calling tools.
+
+DASHBOARD SECTIONS:
+- Overview: engagement summary, 160h M1 cap, 80h firefighting / 80h deliverables
+- Engagement Buckets (B1–B5): B1=Financial Controls, B2=Cost & Revenue, B3=Ops SOPs, B4=Deal/Investment, B5=Reporting
+- Timeline: tasks with weeks, departments, priorities
+- Monthly Pricing: retainer tiers M1–M3, min EGP 100K, FX rate 47, RATE 1200 EGP/h
+- Success Metrics: KPIs and targets
+- Market Analysis: competitive and market context
+- Notes & Actions: open/resolved comments and action items
+- Ramadan Sales Plan: B2C channels (social, google, influencer, talabat, crm, gmb), B2B corporate Iftar pipeline, pricing inputs (avgCheckIftar EGP340, avgCheckSuhoor EGP280, avgCheckDelivery EGP185), 30 Ramadan nights, 8 branches
+
+When asked to edit something, call the appropriate tool. Be concise. Use numbers. Answer in the context of F&B turnaround consulting for Egypt.`;
+
+        const TOOLS=[
+          {
+            name:"update_mkt_channel",
+            description:"Update a B2C marketing channel field. Channels: social, google, influencer, talabat, crm, gmb. Fields: budget (number), impressions (string), clicks (string), orders (string), active (boolean), name (string).",
+            input_schema:{type:"object",properties:{channel:{type:"string",enum:["social","google","influencer","talabat","crm","gmb"]},field:{type:"string"},value:{type:["string","number","boolean"]}},required:["channel","field","value"]}
+          },
+          {
+            name:"update_b2b",
+            description:"Update B2B corporate Iftar pipeline field. Fields: pipelineClients, closeRate, avgGroupSize, avgPackagePrice, bookingsPerClient, salesBudget (all numbers), active (boolean), notes (string).",
+            input_schema:{type:"object",properties:{field:{type:"string"},value:{type:["string","number","boolean"]}},required:["field","value"]}
+          },
+          {
+            name:"update_pricing",
+            description:"Update a pricing/session input. Fields: avgCheckIftar, avgCheckSuhoor, avgCheckDelivery, iftarCoversPerNight, suhoorCoversPerNight, deliveryOrdersPerMonth, ramadanNights, repeatRate (all numbers).",
+            input_schema:{type:"object",properties:{field:{type:"string"},value:{type:"number"}},required:["field","value"]}
+          },
+          {
+            name:"update_task",
+            description:"Update a task field by task id. Fields: name (string), status (string: todo/inprogress/done), hrs (number), dept (string), prio (string: rev/cost/cash), impact (string: high/med/low).",
+            input_schema:{type:"object",properties:{taskId:{type:"number"},field:{type:"string"},value:{type:["string","number"]}},required:["taskId","field","value"]}
+          },
+          {
+            name:"navigate_to",
+            description:"Switch the dashboard to a specific tab/view.",
+            input_schema:{type:"object",properties:{view:{type:"string",enum:["overview","buckets","timeline","pricing","success","market","notes","budget","mktplan"]}},required:["view"]}
+          },
+          {
+            name:"read_dashboard_state",
+            description:"Read current dashboard state values to answer a question. Specify what you need: 'mktplan', 'tasks', 'pricing', 'b2b', 'all'.",
+            input_schema:{type:"object",properties:{section:{type:"string"}},required:["section"]}
+          }
+        ];
+
+        const executeTool=(name,input)=>{
+          if(name==="update_mkt_channel"){
+            updMktCh(input.channel,input.field,input.value);
+            return `Updated ${input.channel}.${input.field} = ${input.value}`;
+          }
+          if(name==="update_b2b"){
+            updMktB2B(input.field,input.value);
+            return `Updated B2B ${input.field} = ${input.value}`;
+          }
+          if(name==="update_pricing"){
+            updMktPricing(input.field,input.value);
+            return `Updated pricing.${input.field} = ${input.value}`;
+          }
+          if(name==="update_task"){
+            setTasks(prev=>prev.map(t=>t.id===input.taskId?{...t,[input.field]:input.value}:t));
+            return `Updated task #${input.taskId} ${input.field} = ${input.value}`;
+          }
+          if(name==="navigate_to"){
+            setView(input.view);
+            return `Navigated to ${input.view}`;
+          }
+          if(name==="read_dashboard_state"){
+            const s=input.section;
+            if(s==="mktplan"||s==="all") return JSON.stringify({channels:mktPlan.channels,b2b:mktPlan.b2b,pricing:mktPlan.pricing});
+            if(s==="tasks") return JSON.stringify(tasks.slice(0,20).map(t=>({id:t.id,name:t.name,b:t.b,dept:t.dept,hrs:t.hrs,status:t.status||"todo",prio:t.prio})));
+            if(s==="pricing") return JSON.stringify(mktPlan.pricing);
+            if(s==="b2b") return JSON.stringify(mktPlan.b2b);
+            return JSON.stringify({view,tasks:tasks.length,b2b:mktPlan.b2b,pricing:mktPlan.pricing});
+          }
+          return "Tool not found";
+        };
+
+        const sendMessage=async()=>{
+          const text=agentInput.trim();
+          if(!text||agentLoading) return;
+          setAgentInput("");
+          setAgentError("");
+          const userMsg={role:"user",content:text};
+          const newMsgs=[...agentMsgs,userMsg];
+          setAgentMsgs(newMsgs);
+          setAgentLoading(true);
+
+          // Build API messages (strip non-serializable, keep role+content)
+          let apiMsgs=newMsgs.map(m=>({role:m.role,content:m.content}));
+
+          try{
+            let maxIter=5;
+            while(maxIter-->0){
+              const res=await fetch("https://api.anthropic.com/v1/messages",{
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:SYSTEM,tools:TOOLS,messages:apiMsgs})
+              });
+              const data=await res.json();
+              if(!res.ok){setAgentError(data.error?.message||"API error");break;}
+
+              // Check for tool use
+              const toolUses=data.content.filter(b=>b.type==="tool_use");
+              const textBlocks=data.content.filter(b=>b.type==="text");
+
+              if(toolUses.length===0){
+                // Final text response
+                const reply=textBlocks.map(b=>b.text).join("\n").trim();
+                setAgentMsgs(prev=>[...prev,{role:"assistant",content:reply}]);
+                break;
+              }
+
+              // Execute tools, build tool_result messages
+              const assistantMsg={role:"assistant",content:data.content};
+              const toolResults=toolUses.map(tu=>({
+                type:"tool_result",
+                tool_use_id:tu.id,
+                content:executeTool(tu.name,tu.input)
+              }));
+              apiMsgs=[...apiMsgs,assistantMsg,{role:"user",content:toolResults}];
+
+              // If there's also text in this turn, show it as thinking
+              if(textBlocks.length>0){
+                const thinking=textBlocks.map(b=>b.text).join(" ").trim();
+                if(thinking) setAgentMsgs(prev=>[...prev,{role:"assistant",content:thinking,dim:true}]);
+              }
+            }
+          }catch(e){setAgentError("Network error: "+e.message);}
+          setAgentLoading(false);
+        };
+
+        const pill={fontFamily:"DM Mono,monospace",fontSize:9,padding:"2px 6px",borderRadius:3,cursor:"pointer",border:"1px solid #e5e1dc",background:"#f5f3f0",color:"#555",whiteSpace:"nowrap"};
+
+        return(
+          <div style={{position:"fixed",bottom:20,right:20,zIndex:9999,display:"flex",flexDirection:"column",alignItems:"flex-end",gap:8}}>
+            {/* Suggestions when closed */}
+            {!agentOpen&&(
+              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                {["What's the blended CAC?","Show B2B pipeline","Set Iftar avg check to 380","Mark task #1 done","Go to Ramadan plan"].map((s,i)=>(
+                  <button key={i} style={pill} onClick={()=>{setAgentOpen(true);setAgentInput(s);}}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Chat window */}
+            {agentOpen&&(
+              <div style={{width:360,background:"#fff",border:"1px solid #e5e1dc",borderRadius:12,boxShadow:"0 8px 32px rgba(0,0,0,0.12)",display:"flex",flexDirection:"column",maxHeight:500,overflow:"hidden"}}>
+                {/* Header */}
+                <div style={{background:"linear-gradient(135deg,#1e293b,#0f172a)",padding:"12px 14px",display:"flex",justifyContent:"space-between",alignItems:"center",borderRadius:"12px 12px 0 0"}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8}}>
+                    <div style={{width:28,height:28,borderRadius:"50%",background:"linear-gradient(135deg,#3b82f6,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14}}>✦</div>
+                    <div>
+                      <div style={{fontFamily:"DM Sans,sans-serif",fontSize:12,fontWeight:700,color:"#fff"}}>C² Assistant</div>
+                      <div style={{fontFamily:"DM Mono,monospace",fontSize:8,color:"rgba(255,255,255,0.4)",letterSpacing:1}}>ABOU SHAKRA · READS & EDITS LIVE</div>
+                    </div>
+                  </div>
+                  <button onClick={()=>setAgentOpen(false)} style={{background:"none",border:"none",color:"rgba(255,255,255,0.5)",fontSize:16,cursor:"pointer",lineHeight:1}}>✕</button>
+                </div>
+
+                {/* Messages */}
+                <div style={{flex:1,overflowY:"auto",padding:"12px",display:"flex",flexDirection:"column",gap:8,minHeight:0,maxHeight:340}}>
+                  {agentMsgs.map((m,i)=>(
+                    <div key={i} style={{display:"flex",justifyContent:m.role==="user"?"flex-end":"flex-start"}}>
+                      <div style={{maxWidth:"85%",padding:"9px 12px",borderRadius:m.role==="user"?"10px 10px 2px 10px":"10px 10px 10px 2px",background:m.role==="user"?"#1e293b":m.dim?"#f9f8f6":"#f0f4ff",color:m.role==="user"?"#fff":m.dim?"#bbb":"#222",fontFamily:"DM Sans,sans-serif",fontSize:11,lineHeight:1.6,opacity:m.dim?0.7:1}}>
+                        {m.content}
+                      </div>
+                    </div>
+                  ))}
+                  {agentLoading&&(
+                    <div style={{display:"flex",justifyContent:"flex-start"}}>
+                      <div style={{padding:"9px 14px",borderRadius:"10px 10px 10px 2px",background:"#f0f4ff",fontFamily:"DM Mono,monospace",fontSize:11,color:"#94a3b8",letterSpacing:2}}>···</div>
+                    </div>
+                  )}
+                  {agentError&&<div style={{fontFamily:"DM Mono,monospace",fontSize:9,color:"#dc2626",textAlign:"center",padding:"4px 8px",background:"#fef2f2",borderRadius:4}}>{agentError}</div>}
+                  <div ref={msgEndRef}/>
+                </div>
+
+                {/* Quick actions */}
+                <div style={{padding:"6px 10px",borderTop:"1px solid #f0ede8",display:"flex",gap:4,flexWrap:"wrap"}}>
+                  {["CAC breakdown","Best channel ROAS","B2B revenue","Total budget"].map((s,i)=>(
+                    <button key={i} style={{...pill,fontSize:8}} onClick={()=>{setAgentInput(s);}}>{s}</button>
+                  ))}
+                </div>
+
+                {/* Input */}
+                <div style={{padding:"8px 10px",borderTop:"1px solid #f0ede8",display:"flex",gap:6}}>
+                  <input
+                    value={agentInput}
+                    onChange={e=>setAgentInput(e.target.value)}
+                    onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&sendMessage()}
+                    placeholder="Ask anything or say 'set budget for social to 20000'…"
+                    style={{flex:1,padding:"7px 10px",border:"1px solid #e5e1dc",borderRadius:6,fontFamily:"DM Sans,sans-serif",fontSize:11,outline:"none",background:"#fafaf8"}}
+                  />
+                  <button onClick={sendMessage} disabled={agentLoading||!agentInput.trim()} style={{padding:"7px 12px",background:agentLoading||!agentInput.trim()?"#e5e1dc":"#1e293b",color:agentLoading||!agentInput.trim()?"#bbb":"#fff",border:"none",borderRadius:6,fontFamily:"DM Mono,monospace",fontSize:10,fontWeight:700,cursor:agentLoading||!agentInput.trim()?"default":"pointer",transition:"background 0.2s"}}>
+                    {agentLoading?"···":"→"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Toggle button */}
+            <button onClick={()=>{setAgentOpen(o=>!o);setAgentError("");}} style={{width:44,height:44,borderRadius:"50%",background:agentOpen?"#f5f3f0":"linear-gradient(135deg,#1e293b,#0f172a)",border:agentOpen?"1px solid #e5e1dc":"none",color:agentOpen?"#888":"#fff",fontSize:18,cursor:"pointer",boxShadow:"0 4px 14px rgba(0,0,0,0.15)",display:"flex",alignItems:"center",justifyContent:"center",transition:"all 0.2s"}}>
+              {agentOpen?"✕":"✦"}
+            </button>
+          </div>
+        );
+      })()}
+
       </div>
   );
 }
