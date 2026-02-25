@@ -188,9 +188,10 @@ function computeMonthly(taskList) {
     const firefightHrs = mi===0 ? M1_FIREFIGHT : 0;
     const totalHrs = mi===0 ? M1_CAP : roundH;
     const computed=totalHrs*RATE;
-    const retainer=Math.max(computed,MIN_RETAINER);
+    const floor=mi===2?150000:MIN_RETAINER;
+    const retainer=Math.max(computed,floor);
     const tks=taskList.filter(t=>{for(let w=m.w[0];w<=m.w[1];w++) if(w>=t.w[0]&&w<=t.w[1]) return true; return false;});
-    return {...m,hrs:totalHrs,deliverableHrs,firefightHrs,computed,retainer,tasks:tks,isFloor:computed<MIN_RETAINER};
+    return {...m,hrs:totalHrs,deliverableHrs,firefightHrs,computed,retainer,tasks:tks,isFloor:computed<floor};
   });
 }
 
