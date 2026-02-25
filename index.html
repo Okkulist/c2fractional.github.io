@@ -1155,176 +1155,6 @@ const App = function App(){
         </div>}
 
         {/* ═══ REQUIREMENTS ═══ */}
-        {view==="reqs"&&<div>
-          <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1.5,marginBottom:8}}>CLIENT-SIDE REQUIREMENTS</div>
-          {requirements.map((r,i)=>(
-            <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 110px 65px 50px",gap:5,alignItems:"center",padding:"7px 10px",background:"#fff",border:"1px solid #e5e1dc",borderRadius:5,borderLeft:r.critical?"3px solid #dc2626":"3px solid #ddd",marginBottom:2}}>
-              <span style={{fontSize:11,fontWeight:600,color:"#333"}}>{r.item}</span>
-              <span style={{fontFamily:mono,fontSize:9,color:"#888"}}>{r.who}</span>
-              <span style={{fontFamily:mono,fontSize:9,color:r.critical?"#dc2626":"#888",fontWeight:r.critical?700:400}}>{r.due}</span>
-              {r.critical?<span style={{fontFamily:mono,fontSize:7,color:"#dc2626",background:"#fef2f2",padding:"1px 3px",borderRadius:2,fontWeight:700,textAlign:"center"}}>CRITICAL</span>:<span/>}
-            </div>
-          ))}
-          <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1.5,marginTop:14,marginBottom:8}}>CRITICAL HIRES</div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:14}}>
-            {[{role:"Cost Controller",resp:"Food cost, recipe validation, variance analysis, stock-take oversight",by:"Week 1"},{role:"Chief Accountant",resp:"Consolidated P&L, financial position, bank reconciliation",by:"Week 1–2"}].map((h,i)=>(
-              <div key={i} style={{background:"#fff",border:"1px solid #fca5a5",borderRadius:8,padding:"10px 12px"}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                  <span style={{fontFamily:disp,fontSize:12,fontWeight:700}}>{h.role}</span>
-                  <span style={{fontFamily:mono,fontSize:8,color:"#dc2626",fontWeight:700}}>BY {h.by.toUpperCase()}</span>
-                </div>
-                <div style={{fontSize:10,color:"#888",lineHeight:1.4}}>{h.resp}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1.5,marginBottom:8}}>KEY TERMS</div>
-          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"12px 14px"}}>
-            {["Valid 30 days","Deliverables become Abou Shakra IP upon payment","Scope changes quoted as addenda","Strictly confidential","14 days notice to terminate; retainer prorated","Unimpeded access to systems & personnel required","Client delays extend timeline proportionally","Monthly retainer based on hours with EGP 100K minimum"].map((t,i)=>(
-              <div key={i} style={{display:"flex",gap:5,padding:"3px 0",borderBottom:i<7?"1px solid #f0f0ee":"none"}}>
-                <span style={{fontFamily:mono,fontSize:9,color:"#D4863A"}}>§{i+1}</span>
-                <span style={{fontSize:10.5,color:"#666",lineHeight:1.5}}>{t}</span>
-              </div>
-            ))}
-          </div>
-        </div>}
-
-        <div style={{marginTop:20,paddingTop:12,borderTop:"1px solid #e5e1dc",display:"flex",justifyContent:"space-between"}}>
-          <div style={{display:"flex",alignItems:"center",gap:4}}><span style={{fontFamily:disp,fontSize:11,fontWeight:300,color:"#bbb"}}>C^2</span><span style={{fontFamily:mono,fontSize:7.5,color:"#ccc",letterSpacing:2}}>FRACTIONAL MANAGEMENT</span></div>
-          <span style={{fontFamily:mono,fontSize:7.5,color:"#ccc"}}>QT-AS-2026-001 · Confidential</span>
-        </div>
-      </div>
-
-      {/* ─── ADD TASK MODAL ─── */}
-      {showAddTask&&<div className="modal-overlay" onClick={()=>setShowAddTask(false)}>
-        <div className="modal-box" onClick={e=>e.stopPropagation()}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-            <div style={{fontFamily:disp,fontSize:16,fontWeight:700}}>Add Custom Task</div>
-            <button onClick={()=>setShowAddTask(false)} style={{background:"none",border:"none",fontSize:18,color:"#999",cursor:"pointer"}}>✕</button>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <div style={{gridColumn:"1/-1"}}>
-              <div style={labelStyle}>TASK NAME *</div>
-              <input value={newTask.name} onChange={e=>setNewTask(p=>({...p,name:e.target.value}))} style={{...inputStyle,fontSize:13}} placeholder="e.g. Cash flow forecast model"/>
-            </div>
-            <div>
-              <div style={labelStyle}>BUCKET</div>
-              <select value={newTask.b} onChange={e=>setNewTask(p=>({...p,b:e.target.value}))} style={{...inputStyle,padding:"6px 7px"}}>
-                {buckets.map(b=><option key={b.id} value={b.id}>{b.id} – {b.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <div style={labelStyle}>DEPARTMENT</div>
-              <select value={newTask.dept} onChange={e=>setNewTask(p=>({...p,dept:e.target.value}))} style={{...inputStyle,padding:"6px 7px"}}>
-                {Object.entries(D).map(([k,v])=><option key={k} value={k}>{v.l}</option>)}
-              </select>
-            </div>
-            <div>
-              <div style={labelStyle}>TIER</div>
-              <select value={newTask.tier} onChange={e=>setNewTask(p=>({...p,tier:e.target.value}))} style={{...inputStyle,padding:"6px 7px"}}>
-                {Object.entries(T).map(([k,v])=><option key={k} value={k}>{v.ico} {v.l}</option>)}
-              </select>
-            </div>
-            <div>
-              <div style={labelStyle}>PRIORITY</div>
-              <select value={newTask.prio} onChange={e=>setNewTask(p=>({...p,prio:e.target.value}))} style={{...inputStyle,padding:"6px 7px"}}>
-                {Object.entries(PRIO).map(([k,v])=><option key={k} value={k}>{v.ico} {v.l}</option>)}
-              </select>
-            </div>
-            <div>
-              <div style={labelStyle}>IMPACT</div>
-              <select value={newTask.impact} onChange={e=>setNewTask(p=>({...p,impact:e.target.value}))} style={{...inputStyle,padding:"6px 7px"}}>
-                {Object.entries(IMP).map(([k,v])=><option key={k} value={k}>{v.l}</option>)}
-              </select>
-            </div>
-            <div>
-              <div style={labelStyle}>HOURS</div>
-              <input type="number" min="1" value={newTask.hrs} onChange={e=>setNewTask(p=>({...p,hrs:Number(e.target.value)}))} style={inputStyle}/>
-            </div>
-            <div>
-              <div style={labelStyle}>WEEK START</div>
-              <select value={newTask.w[0]} onChange={e=>setNewTask(p=>({...p,w:[Number(e.target.value),Math.max(Number(e.target.value),p.w[1])]}))} style={{...inputStyle,padding:"6px 7px"}}>
-                {WEEKS.map(w=><option key={w} value={w}>Week {w}</option>)}
-              </select>
-            </div>
-            <div>
-              <div style={labelStyle}>WEEK END</div>
-              <select value={newTask.w[1]} onChange={e=>setNewTask(p=>({...p,w:[p.w[0],Number(e.target.value)]}))} style={{...inputStyle,padding:"6px 7px"}}>
-                {WEEKS.filter(w=>w>=newTask.w[0]).map(w=><option key={w} value={w}>Week {w}</option>)}
-              </select>
-            </div>
-            <div style={{gridColumn:"1/-1"}}>
-              <div style={labelStyle}>DESCRIPTION</div>
-              <textarea value={newTask.desc} onChange={e=>setNewTask(p=>({...p,desc:e.target.value}))} rows={2} style={{...inputStyle,resize:"vertical"}} placeholder="What does this task deliver?"/>
-            </div>
-            <div>
-              <div style={labelStyle}>P&L IMPACT</div>
-              <input value={newTask.pnl} onChange={e=>setNewTask(p=>({...p,pnl:e.target.value}))} style={inputStyle} placeholder="Effect on P&L"/>
-            </div>
-            <div>
-              <div style={labelStyle}>BALANCE SHEET IMPACT</div>
-              <input value={newTask.bs} onChange={e=>setNewTask(p=>({...p,bs:e.target.value}))} style={inputStyle} placeholder="Effect on BS"/>
-            </div>
-            <div style={{gridColumn:"1/-1"}}>
-              <div style={labelStyle}>CASH FLOW IMPACT</div>
-              <input value={newTask.cf} onChange={e=>setNewTask(p=>({...p,cf:e.target.value}))} style={inputStyle} placeholder="Effect on cash flow"/>
-            </div>
-          </div>
-          <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:16}}>
-            <button onClick={()=>setShowAddTask(false)} style={{padding:"8px 16px",background:"#f5f3f0",border:"1px solid #e5e1dc",borderRadius:6,fontSize:12,cursor:"pointer",fontFamily:sans}}>Cancel</button>
-            <button onClick={addTask} disabled={!newTask.name} style={{padding:"8px 16px",background:newTask.name?"#16653a":"#ccc",color:"#fff",border:"none",borderRadius:6,fontSize:12,fontWeight:700,cursor:newTask.name?"pointer":"default",fontFamily:sans}}>Add Task</button>
-          </div>
-        </div>
-      </div>}
-
-      {/* ─── ADD COMMENT MODAL ─── */}
-      {showAddComment&&<div className="modal-overlay" onClick={()=>setShowAddComment(false)}>
-        <div className="modal-box" onClick={e=>e.stopPropagation()}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
-            <div style={{fontFamily:disp,fontSize:16,fontWeight:700}}>Add Comment / Action Item</div>
-            <button onClick={()=>setShowAddComment(false)} style={{background:"none",border:"none",fontSize:18,color:"#999",cursor:"pointer"}}>✕</button>
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-            <div>
-              <div style={labelStyle}>YOUR NAME *</div>
-              <input value={newComment.author} onChange={e=>setNewComment(p=>({...p,author:e.target.value}))} style={inputStyle} placeholder="e.g. Ahmed / Moustafa"/>
-            </div>
-            <div>
-              <div style={labelStyle}>TYPE</div>
-              <select value={newComment.type} onChange={e=>setNewComment(p=>({...p,type:e.target.value}))} style={{...inputStyle,padding:"6px 7px"}}>
-                <option value="comment">💬 Comment</option>
-                <option value="action">✅ Action Item</option>
-                <option value="risk">⚠️ Risk / Blocker</option>
-                <option value="decision">🎯 Decision</option>
-              </select>
-            </div>
-            <div style={{gridColumn:"1/-1"}}>
-              <div style={labelStyle}>CONTENT *</div>
-              <textarea value={newComment.content} onChange={e=>setNewComment(p=>({...p,content:e.target.value}))} rows={3} style={{...inputStyle,resize:"vertical"}} placeholder="What needs to be noted or actioned?"/>
-            </div>
-            <div>
-              <div style={labelStyle}>RELATED TASK (OPTIONAL)</div>
-              <select value={newComment.task} onChange={e=>setNewComment(p=>({...p,task:e.target.value}))} style={{...inputStyle,padding:"6px 7px"}}>
-                <option value="">— None —</option>
-                {tasks.map(t=><option key={t.id} value={`#${t.id} ${t.name}`}>#{t.id} {t.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <div style={labelStyle}>STATUS</div>
-              <select value={newComment.status} onChange={e=>setNewComment(p=>({...p,status:e.target.value}))} style={{...inputStyle,padding:"6px 7px"}}>
-                <option value="Open">Open</option>
-                <option value="Resolved">Resolved</option>
-              </select>
-            </div>
-          </div>
-          <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:16}}>
-            <button onClick={()=>setShowAddComment(false)} style={{padding:"8px 16px",background:"#f5f3f0",border:"1px solid #e5e1dc",borderRadius:6,fontSize:12,cursor:"pointer",fontFamily:sans}}>Cancel</button>
-            <button onClick={addComment} disabled={!newComment.author||!newComment.content} style={{padding:"8px 16px",background:(newComment.author&&newComment.content)?"#1e40af":"#ccc",color:"#fff",border:"none",borderRadius:6,fontSize:12,fontWeight:700,cursor:(newComment.author&&newComment.content)?"pointer":"default",fontFamily:sans}}>Add</button>
-          </div>
-        </div>
-      </div>}
-
-
-        {/* ═══ MARKETING & SALES PLAN ═══ */}
         {view==="mktplan"&&<div>
           {/* Ramadan header */}
           <div style={{background:"linear-gradient(135deg,#0d0d1a 0%,#1a0a2e 40%,#2d1b4e 70%,#1a0a2e 100%)",borderRadius:12,padding:"22px 24px",marginBottom:14,position:"relative",overflow:"hidden"}}>
@@ -1753,6 +1583,176 @@ const App = function App(){
           })()}
         </div>}
 
+        {view==="reqs"&&<div>
+          <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1.5,marginBottom:8}}>CLIENT-SIDE REQUIREMENTS</div>
+          {requirements.map((r,i)=>(
+            <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 110px 65px 50px",gap:5,alignItems:"center",padding:"7px 10px",background:"#fff",border:"1px solid #e5e1dc",borderRadius:5,borderLeft:r.critical?"3px solid #dc2626":"3px solid #ddd",marginBottom:2}}>
+              <span style={{fontSize:11,fontWeight:600,color:"#333"}}>{r.item}</span>
+              <span style={{fontFamily:mono,fontSize:9,color:"#888"}}>{r.who}</span>
+              <span style={{fontFamily:mono,fontSize:9,color:r.critical?"#dc2626":"#888",fontWeight:r.critical?700:400}}>{r.due}</span>
+              {r.critical?<span style={{fontFamily:mono,fontSize:7,color:"#dc2626",background:"#fef2f2",padding:"1px 3px",borderRadius:2,fontWeight:700,textAlign:"center"}}>CRITICAL</span>:<span/>}
+            </div>
+          ))}
+          <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1.5,marginTop:14,marginBottom:8}}>CRITICAL HIRES</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:14}}>
+            {[{role:"Cost Controller",resp:"Food cost, recipe validation, variance analysis, stock-take oversight",by:"Week 1"},{role:"Chief Accountant",resp:"Consolidated P&L, financial position, bank reconciliation",by:"Week 1–2"}].map((h,i)=>(
+              <div key={i} style={{background:"#fff",border:"1px solid #fca5a5",borderRadius:8,padding:"10px 12px"}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                  <span style={{fontFamily:disp,fontSize:12,fontWeight:700}}>{h.role}</span>
+                  <span style={{fontFamily:mono,fontSize:8,color:"#dc2626",fontWeight:700}}>BY {h.by.toUpperCase()}</span>
+                </div>
+                <div style={{fontSize:10,color:"#888",lineHeight:1.4}}>{h.resp}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1.5,marginBottom:8}}>KEY TERMS</div>
+          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"12px 14px"}}>
+            {["Valid 30 days","Deliverables become Abou Shakra IP upon payment","Scope changes quoted as addenda","Strictly confidential","14 days notice to terminate; retainer prorated","Unimpeded access to systems & personnel required","Client delays extend timeline proportionally","Monthly retainer based on hours with EGP 100K minimum"].map((t,i)=>(
+              <div key={i} style={{display:"flex",gap:5,padding:"3px 0",borderBottom:i<7?"1px solid #f0f0ee":"none"}}>
+                <span style={{fontFamily:mono,fontSize:9,color:"#D4863A"}}>§{i+1}</span>
+                <span style={{fontSize:10.5,color:"#666",lineHeight:1.5}}>{t}</span>
+              </div>
+            ))}
+          </div>
+        </div>}
+
+        <div style={{marginTop:20,paddingTop:12,borderTop:"1px solid #e5e1dc",display:"flex",justifyContent:"space-between"}}>
+          <div style={{display:"flex",alignItems:"center",gap:4}}><span style={{fontFamily:disp,fontSize:11,fontWeight:300,color:"#bbb"}}>C^2</span><span style={{fontFamily:mono,fontSize:7.5,color:"#ccc",letterSpacing:2}}>FRACTIONAL MANAGEMENT</span></div>
+          <span style={{fontFamily:mono,fontSize:7.5,color:"#ccc"}}>QT-AS-2026-001 · Confidential</span>
+        </div>
+      </div>
+
+      {/* ─── ADD TASK MODAL ─── */}
+      {showAddTask&&<div className="modal-overlay" onClick={()=>setShowAddTask(false)}>
+        <div className="modal-box" onClick={e=>e.stopPropagation()}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <div style={{fontFamily:disp,fontSize:16,fontWeight:700}}>Add Custom Task</div>
+            <button onClick={()=>setShowAddTask(false)} style={{background:"none",border:"none",fontSize:18,color:"#999",cursor:"pointer"}}>✕</button>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div style={{gridColumn:"1/-1"}}>
+              <div style={labelStyle}>TASK NAME *</div>
+              <input value={newTask.name} onChange={e=>setNewTask(p=>({...p,name:e.target.value}))} style={{...inputStyle,fontSize:13}} placeholder="e.g. Cash flow forecast model"/>
+            </div>
+            <div>
+              <div style={labelStyle}>BUCKET</div>
+              <select value={newTask.b} onChange={e=>setNewTask(p=>({...p,b:e.target.value}))} style={{...inputStyle,padding:"6px 7px"}}>
+                {buckets.map(b=><option key={b.id} value={b.id}>{b.id} – {b.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={labelStyle}>DEPARTMENT</div>
+              <select value={newTask.dept} onChange={e=>setNewTask(p=>({...p,dept:e.target.value}))} style={{...inputStyle,padding:"6px 7px"}}>
+                {Object.entries(D).map(([k,v])=><option key={k} value={k}>{v.l}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={labelStyle}>TIER</div>
+              <select value={newTask.tier} onChange={e=>setNewTask(p=>({...p,tier:e.target.value}))} style={{...inputStyle,padding:"6px 7px"}}>
+                {Object.entries(T).map(([k,v])=><option key={k} value={k}>{v.ico} {v.l}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={labelStyle}>PRIORITY</div>
+              <select value={newTask.prio} onChange={e=>setNewTask(p=>({...p,prio:e.target.value}))} style={{...inputStyle,padding:"6px 7px"}}>
+                {Object.entries(PRIO).map(([k,v])=><option key={k} value={k}>{v.ico} {v.l}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={labelStyle}>IMPACT</div>
+              <select value={newTask.impact} onChange={e=>setNewTask(p=>({...p,impact:e.target.value}))} style={{...inputStyle,padding:"6px 7px"}}>
+                {Object.entries(IMP).map(([k,v])=><option key={k} value={k}>{v.l}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={labelStyle}>HOURS</div>
+              <input type="number" min="1" value={newTask.hrs} onChange={e=>setNewTask(p=>({...p,hrs:Number(e.target.value)}))} style={inputStyle}/>
+            </div>
+            <div>
+              <div style={labelStyle}>WEEK START</div>
+              <select value={newTask.w[0]} onChange={e=>setNewTask(p=>({...p,w:[Number(e.target.value),Math.max(Number(e.target.value),p.w[1])]}))} style={{...inputStyle,padding:"6px 7px"}}>
+                {WEEKS.map(w=><option key={w} value={w}>Week {w}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={labelStyle}>WEEK END</div>
+              <select value={newTask.w[1]} onChange={e=>setNewTask(p=>({...p,w:[p.w[0],Number(e.target.value)]}))} style={{...inputStyle,padding:"6px 7px"}}>
+                {WEEKS.filter(w=>w>=newTask.w[0]).map(w=><option key={w} value={w}>Week {w}</option>)}
+              </select>
+            </div>
+            <div style={{gridColumn:"1/-1"}}>
+              <div style={labelStyle}>DESCRIPTION</div>
+              <textarea value={newTask.desc} onChange={e=>setNewTask(p=>({...p,desc:e.target.value}))} rows={2} style={{...inputStyle,resize:"vertical"}} placeholder="What does this task deliver?"/>
+            </div>
+            <div>
+              <div style={labelStyle}>P&L IMPACT</div>
+              <input value={newTask.pnl} onChange={e=>setNewTask(p=>({...p,pnl:e.target.value}))} style={inputStyle} placeholder="Effect on P&L"/>
+            </div>
+            <div>
+              <div style={labelStyle}>BALANCE SHEET IMPACT</div>
+              <input value={newTask.bs} onChange={e=>setNewTask(p=>({...p,bs:e.target.value}))} style={inputStyle} placeholder="Effect on BS"/>
+            </div>
+            <div style={{gridColumn:"1/-1"}}>
+              <div style={labelStyle}>CASH FLOW IMPACT</div>
+              <input value={newTask.cf} onChange={e=>setNewTask(p=>({...p,cf:e.target.value}))} style={inputStyle} placeholder="Effect on cash flow"/>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:16}}>
+            <button onClick={()=>setShowAddTask(false)} style={{padding:"8px 16px",background:"#f5f3f0",border:"1px solid #e5e1dc",borderRadius:6,fontSize:12,cursor:"pointer",fontFamily:sans}}>Cancel</button>
+            <button onClick={addTask} disabled={!newTask.name} style={{padding:"8px 16px",background:newTask.name?"#16653a":"#ccc",color:"#fff",border:"none",borderRadius:6,fontSize:12,fontWeight:700,cursor:newTask.name?"pointer":"default",fontFamily:sans}}>Add Task</button>
+          </div>
+        </div>
+      </div>}
+
+      {/* ─── ADD COMMENT MODAL ─── */}
+      {showAddComment&&<div className="modal-overlay" onClick={()=>setShowAddComment(false)}>
+        <div className="modal-box" onClick={e=>e.stopPropagation()}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+            <div style={{fontFamily:disp,fontSize:16,fontWeight:700}}>Add Comment / Action Item</div>
+            <button onClick={()=>setShowAddComment(false)} style={{background:"none",border:"none",fontSize:18,color:"#999",cursor:"pointer"}}>✕</button>
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <div>
+              <div style={labelStyle}>YOUR NAME *</div>
+              <input value={newComment.author} onChange={e=>setNewComment(p=>({...p,author:e.target.value}))} style={inputStyle} placeholder="e.g. Ahmed / Moustafa"/>
+            </div>
+            <div>
+              <div style={labelStyle}>TYPE</div>
+              <select value={newComment.type} onChange={e=>setNewComment(p=>({...p,type:e.target.value}))} style={{...inputStyle,padding:"6px 7px"}}>
+                <option value="comment">💬 Comment</option>
+                <option value="action">✅ Action Item</option>
+                <option value="risk">⚠️ Risk / Blocker</option>
+                <option value="decision">🎯 Decision</option>
+              </select>
+            </div>
+            <div style={{gridColumn:"1/-1"}}>
+              <div style={labelStyle}>CONTENT *</div>
+              <textarea value={newComment.content} onChange={e=>setNewComment(p=>({...p,content:e.target.value}))} rows={3} style={{...inputStyle,resize:"vertical"}} placeholder="What needs to be noted or actioned?"/>
+            </div>
+            <div>
+              <div style={labelStyle}>RELATED TASK (OPTIONAL)</div>
+              <select value={newComment.task} onChange={e=>setNewComment(p=>({...p,task:e.target.value}))} style={{...inputStyle,padding:"6px 7px"}}>
+                <option value="">— None —</option>
+                {tasks.map(t=><option key={t.id} value={`#${t.id} ${t.name}`}>#{t.id} {t.name}</option>)}
+              </select>
+            </div>
+            <div>
+              <div style={labelStyle}>STATUS</div>
+              <select value={newComment.status} onChange={e=>setNewComment(p=>({...p,status:e.target.value}))} style={{...inputStyle,padding:"6px 7px"}}>
+                <option value="Open">Open</option>
+                <option value="Resolved">Resolved</option>
+              </select>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:8,justifyContent:"flex-end",marginTop:16}}>
+            <button onClick={()=>setShowAddComment(false)} style={{padding:"8px 16px",background:"#f5f3f0",border:"1px solid #e5e1dc",borderRadius:6,fontSize:12,cursor:"pointer",fontFamily:sans}}>Cancel</button>
+            <button onClick={addComment} disabled={!newComment.author||!newComment.content} style={{padding:"8px 16px",background:(newComment.author&&newComment.content)?"#1e40af":"#ccc",color:"#fff",border:"none",borderRadius:6,fontSize:12,fontWeight:700,cursor:(newComment.author&&newComment.content)?"pointer":"default",fontFamily:sans}}>Add</button>
+          </div>
+        </div>
+      </div>}
+
+
+        {/* ═══ MARKETING & SALES PLAN ═══ */}
 
       </div>
   );
