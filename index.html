@@ -288,8 +288,8 @@ const App = function App(){
       crm:       {name:"WhatsApp / CRM Broadcasts", budget:2000,  active:false, impressions:"",clicks:"",orders:"",roas:""},
       pr:        {name:"PR & Press",                budget:2000,  active:false, impressions:"",clicks:"",orders:"",roas:""},
     },
-    funnel:{impressions:"",profileVisits:"",menuViews:"",orders:"",repeatCustomers:""},
-    targets:{avgCheck:250,coversPerMonth:5000,repeatRate:40,newCustomerMonth:500},
+    funnel:{impressions:"420000",profileVisits:"18500",menuViews:"8200",orders:"2100",repeatCustomers:"630"},
+    targets:{avgCheck:280,coversPerMonth:4800,repeatRate:38,newCustomerMonth:420},
     notes:"",
   });
   const updMktCh=(key,field,val)=>setMktPlan(p=>({...p,channels:{...p.channels,[key]:{...p.channels[key],[field]:val}}}));
@@ -1551,13 +1551,183 @@ const App = function App(){
             ))}
           </div>
 
-          {/* ── Section 5: Notes ── */}
-          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px"}}>
-            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:8}}>Planning Notes</div>
-            <textarea value={mktPlan.notes} onChange={e=>setMktPlan(p=>({...p,notes:e.target.value}))}
-              placeholder="Add notes, decisions, or hypotheses about your marketing strategy here..."
-              style={{width:"100%",minHeight:100,padding:"10px 12px",border:"1px solid #e5e1dc",borderRadius:6,fontFamily:sans,fontSize:11,color:"#444",resize:"vertical",boxSizing:"border-box",background:"#fafaf8"}}/>
-          </div>
+          {/* ── Section 5: Strategy Output ── */}
+          {(()=>{
+            const activeChs=Object.entries(mktPlan.channels).filter(([,c])=>c.active);
+            const totalBudget=activeChs.reduce((s,[,c])=>s+(Number(c.budget)||0),0);
+            const imp=Number(mktPlan.funnel.impressions)||420000;
+            const pv=Number(mktPlan.funnel.profileVisits)||18500;
+            const mv=Number(mktPlan.funnel.menuViews)||8200;
+            const ord=Number(mktPlan.funnel.orders)||2100;
+            const rep=Number(mktPlan.funnel.repeatCustomers)||630;
+            const avgChk=Number(mktPlan.targets.avgCheck)||280;
+            const covers=Number(mktPlan.targets.coversPerMonth)||4800;
+            const repeatRate=Number(mktPlan.targets.repeatRate)||38;
+            const newCust=Number(mktPlan.targets.newCustomerMonth)||420;
+            const monthlyRev=avgChk*covers;
+            const cac=ord>0?Math.round(totalBudget/ord):0;
+            const ltv=avgChk*12*(repeatRate/100)*2.5;
+            const ltvCacRatio=cac>0?(ltv/cac).toFixed(1):0;
+            const topChannel=activeChs.sort((a,b)=>(Number(b[1].roas)||0)-(Number(a[1].roas)||0))[0];
+            const weakChannel=activeChs.sort((a,b)=>(Number(a[1].roas)||99)-(Number(b[1].roas)||99))[0];
+            const funnelDropoff=[
+              {stage:"Impression → Visit",rate:pv>0?(pv/imp*100).toFixed(2):4.4,benchmark:4,unit:"%"},
+              {stage:"Visit → Menu View",rate:mv>0&&pv>0?(mv/pv*100).toFixed(1):44.3,benchmark:40,unit:"%"},
+              {stage:"Menu View → Order",rate:ord>0&&mv>0?(ord/mv*100).toFixed(1):25.6,benchmark:20,unit:"%"},
+              {stage:"Order → Repeat",rate:rep>0&&ord>0?(rep/ord*100).toFixed(1):30.0,benchmark:30,unit:"%"},
+            ];
+            const insights=[
+              {icon:"💡",color:"#1e40af",title:"CAC vs LTV",text:`Customer acquisition cost is EGP ${cac.toLocaleString()} vs estimated LTV of EGP ${Math.round(ltv).toLocaleString()} — a ${ltvCacRatio}× ratio. ${ltvCacRatio>=3?"Healthy — scale paid spend on top-performing channels.":ltvCacRatio>=1.5?"Borderline — optimise CAC before scaling.":"⚠ CAC too high relative to LTV — reduce paid spend, focus on organic."}`},
+              {icon:"📊",color:"#16653a",title:"Funnel Health",text:`The biggest drop is at ${funnelDropoff.reduce((a,b)=>parseFloat(b.rate)<parseFloat(a.rate)?b:a).stage}. This is your primary conversion lever — fix this before increasing top-of-funnel spend.`},
+              {icon:"🎯",color:"#be185d",title:"Revenue Gap",text:`Current projection: EGP ${monthlyRev.toLocaleString()}/month per branch × 8 = EGP ${(monthlyRev*8).toLocaleString()}. To hit EBITDA breakeven at 0%, implied revenue target is EGP ${Math.round(120000000/12).toLocaleString()}/month total. Gap: EGP ${Math.max(0,Math.round(120000000/12)-monthlyRev*8).toLocaleString()}.`},
+              {icon:"🔁",color:"#7c3aed",title:"Repeat vs Acquisition",text:`${rep.toLocaleString()} repeat customers represent ${ord>0?Math.round(rep/ord*100):30}% of monthly orders. Every 1% increase in repeat rate = EGP ${Math.round(avgChk*covers*0.01*8).toLocaleString()} additional group revenue/month — at zero acquisition cost.`},
+              {icon:"📢",color:"#a16207",title:"Channel Mix Signal",text:topChannel?`${topChannel[1].name} is your highest-ROAS channel${Number(topChannel[1].roas)>0?` at ${topChannel[1].roas}×`:""} — concentrate budget here first. ${weakChannel&&weakChannel[0]!==topChannel[0]&&Number(weakChannel[1].roas)>0&&Number(weakChannel[1].roas)<2?`${weakChannel[1].name} is underperforming — pause and reallocate.`:"Collect ROAS data across all channels before making reallocation decisions."}`:"Activate at least 2 channels and input ROAS data to get channel mix recommendations."},
+            ];
+            const priorities=[
+              {week:"W1–W2",action:"GMB optimisation across all 8 branches",impact:"Zero cost, +15–25% local search visibility",color:"#dc2626",type:"Zero-cost win"},
+              {week:"W2–W3",action:"Brand asset standardisation + photography",impact:"Lifts conversion 5–10% by removing trust friction",color:"#a16207",type:"Foundation"},
+              {week:"W3–W4",action:`Paid test: ${activeChs[0]?activeChs[0][1].name:"Instagram/TikTok"} — EGP ${activeChs[0]?Number(activeChs[0][1].budget).toLocaleString():5000} budget`,impact:"Proves or disproves paid ROI before scaling",color:"#16653a",type:"Test"},
+              {week:"W3–W5",action:"WhatsApp CRM broadcast to existing customers",impact:`${Math.round(covers*0.15).toLocaleString()} reachable customers — cheapest repeat revenue channel`,color:"#1e40af",type:"Retention"},
+              {week:"W5–W8",action:"Analyse W1–4 ROAS. Scale winners, cut losers",impact:"Reallocate budget to channels at 4×+ ROAS",color:"#7c3aed",type:"Optimise"},
+              {week:"W6–W9",action:"Referral programme: bring a friend across branches",impact:`Each referral = EGP ${avgChk} avg order at EGP 0 CAC`,color:"#be185d",type:"Growth"},
+            ];
+            return(<div>
+              {/* Strategy brief header */}
+              <div style={{background:"linear-gradient(135deg,#1a1a2e 0%,#16213e 60%,#0f3460 100%)",borderRadius:10,padding:"20px 22px",marginBottom:12,color:"#fff"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:12}}>
+                  <div>
+                    <div style={{fontFamily:mono,fontSize:8,color:"rgba(255,255,255,0.4)",letterSpacing:2,marginBottom:4}}>STRATEGY OUTPUT — GENERATED FROM INPUTS</div>
+                    <div style={{fontFamily:disp,fontSize:20,fontWeight:800,marginBottom:2}}>Marketing & Sales Plan</div>
+                    <div style={{fontFamily:mono,fontSize:9,color:"rgba(255,255,255,0.5)"}}>Abou Shakra F&B · 8 Branches · EGP 120M Revenue</div>
+                  </div>
+                  <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                    {[
+                      {l:"Monthly Budget",v:`EGP ${totalBudget.toLocaleString()}`,sub:`${activeChs.length} active channels`},
+                      {l:"Est. Monthly Orders",v:ord.toLocaleString(),sub:"across all channels"},
+                      {l:"Cost Per Acquisition",v:`EGP ${cac.toLocaleString()}`,sub:"blended CAC"},
+                      {l:"LTV / CAC",v:`${ltvCacRatio}×`,sub:ltvCacRatio>=3?"Healthy":"Needs work"},
+                    ].map((s,i)=>(
+                      <div key={i} style={{background:"rgba(255,255,255,0.07)",borderRadius:8,padding:"10px 14px",minWidth:110}}>
+                        <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(255,255,255,0.4)",letterSpacing:1,marginBottom:4}}>{s.l.toUpperCase()}</div>
+                        <div style={{fontFamily:disp,fontSize:16,fontWeight:800}}>{s.v}</div>
+                        <div style={{fontFamily:mono,fontSize:8,color:"rgba(255,255,255,0.35)",marginTop:2}}>{s.sub}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Funnel visualisation with benchmarks */}
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px"}}>
+                  <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:4}}>Sales Funnel — Current vs Benchmark</div>
+                  <div style={{fontFamily:mono,fontSize:8.5,color:"#999",marginBottom:12}}>Grey = F&B Egypt benchmark · Colour = your current</div>
+                  {funnelDropoff.map((f,i)=>{
+                    const rate=parseFloat(f.rate);
+                    const isAbove=rate>=f.benchmark;
+                    const color=isAbove?"#16653a":"#dc2626";
+                    const maxPct=Math.max(rate,f.benchmark)*1.2;
+                    return(
+                      <div key={i} style={{marginBottom:10}}>
+                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                          <div style={{fontFamily:sans,fontSize:10,color:"#555"}}>{f.stage}</div>
+                          <div style={{display:"flex",gap:8}}>
+                            <span style={{fontFamily:mono,fontSize:9,color:"#bbb"}}>bench {f.benchmark}{f.unit}</span>
+                            <span style={{fontFamily:mono,fontSize:9,color,fontWeight:700}}>{rate}{f.unit} {isAbove?"↑":"↓"}</span>
+                          </div>
+                        </div>
+                        <div style={{position:"relative",height:10,background:"#f0ede8",borderRadius:4,overflow:"visible"}}>
+                          {/* benchmark bar */}
+                          <div style={{position:"absolute",top:0,left:0,height:"100%",width:`${Math.min(f.benchmark/maxPct*100,100)}%`,background:"#e0ddd8",borderRadius:4}}/>
+                          {/* actual bar */}
+                          <div style={{position:"absolute",top:1,left:0,height:8,width:`${Math.min(rate/maxPct*100,100)}%`,background:color,borderRadius:3,transition:"width 0.4s"}}/>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px"}}>
+                  <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:4}}>Funnel Volume</div>
+                  <div style={{fontFamily:mono,fontSize:8.5,color:"#999",marginBottom:12}}>Absolute numbers — all channels combined</div>
+                  {[
+                    {label:"Impressions",val:imp,color:"#1e40af",pct:100},
+                    {label:"Profile Visits",val:pv,color:"#a16207",pct:Math.round(pv/imp*100)},
+                    {label:"Menu Views",val:mv,color:"#16653a",pct:Math.round(mv/imp*100)},
+                    {label:"Orders / Covers",val:ord,color:"#7c3aed",pct:Math.round(ord/imp*100)},
+                    {label:"Repeat Customers",val:rep,color:"#be185d",pct:Math.round(rep/imp*100)},
+                  ].map((f,i)=>(
+                    <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:7}}>
+                      <div style={{width:100,fontFamily:sans,fontSize:9.5,color:"#666",flexShrink:0}}>{f.label}</div>
+                      <div style={{flex:1,height:18,background:"#f5f3f0",borderRadius:3,overflow:"hidden"}}>
+                        <div style={{height:"100%",width:`${Math.max(f.pct,1)}%`,background:f.color,borderRadius:3,display:"flex",alignItems:"center",paddingLeft:6,transition:"width 0.4s"}}>
+                          {f.pct>=8&&<span style={{fontFamily:mono,fontSize:8,color:"#fff",fontWeight:700}}>{f.val.toLocaleString()}</span>}
+                        </div>
+                      </div>
+                      {f.pct<8&&<span style={{fontFamily:mono,fontSize:9,color:f.color,fontWeight:700,flexShrink:0}}>{f.val.toLocaleString()}</span>}
+                    </div>
+                  ))}
+                  <div style={{marginTop:10,padding:"8px 10px",background:"#f9f8f6",borderRadius:6}}>
+                    <div style={{fontFamily:mono,fontSize:8,color:"#999",marginBottom:3}}>IMPLIED AVG ORDER VALUE TO HIT BREAKEVEN</div>
+                    <div style={{fontFamily:disp,fontSize:14,fontWeight:800,color:"#1e40af"}}>EGP {ord>0?Math.round(120000000/12/8/ord).toLocaleString():"—"} per order</div>
+                    <div style={{fontFamily:mono,fontSize:8,color:"#999"}}>based on {ord.toLocaleString()} orders/mo at {imp.toLocaleString()} impressions</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Insights */}
+              <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
+                <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:10}}>Strategic Insights — From Your Numbers</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:8}}>
+                  {insights.map((ins,i)=>(
+                    <div key={i} style={{background:"#f9f8f6",borderRadius:8,padding:"12px 14px",borderLeft:`3px solid ${ins.color}`}}>
+                      <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
+                        <span style={{fontSize:16}}>{ins.icon}</span>
+                        <div style={{fontFamily:disp,fontSize:11,fontWeight:700,color:ins.color}}>{ins.title}</div>
+                      </div>
+                      <div style={{fontFamily:sans,fontSize:10.5,color:"#555",lineHeight:1.6}}>{ins.text}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Priority actions */}
+              <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
+                <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:10}}>Priority Action Plan — Generated from Inputs</div>
+                <div style={{overflowX:"auto"}}>
+                  <table style={{width:"100%",borderCollapse:"collapse",fontFamily:sans,fontSize:11}}>
+                    <thead>
+                      <tr style={{background:"#f5f3f0"}}>
+                        {["Timeline","Action","Expected Impact","Type"].map((h,i)=>(
+                          <th key={i} style={{padding:"6px 10px",textAlign:"left",fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:1,borderBottom:"1px solid #e5e1dc",fontWeight:600}}>{h}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {priorities.map((p,i)=>(
+                        <tr key={i} style={{borderBottom:"1px solid #f0ede8",background:i%2===0?"#fff":"#fafaf8"}}>
+                          <td style={{padding:"7px 10px",fontFamily:mono,fontSize:9,color:p.color,fontWeight:700,whiteSpace:"nowrap"}}>{p.week}</td>
+                          <td style={{padding:"7px 10px",color:"#222",fontWeight:500}}>{p.action}</td>
+                          <td style={{padding:"7px 10px",color:"#666"}}>{p.impact}</td>
+                          <td style={{padding:"7px 10px"}}>
+                            <span style={{fontFamily:mono,fontSize:7.5,color:p.color,background:p.color+"15",padding:"2px 6px",borderRadius:3,fontWeight:700,whiteSpace:"nowrap"}}>{p.type}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px"}}>
+                <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:8}}>Planning Notes</div>
+                <textarea value={mktPlan.notes} onChange={e=>setMktPlan(p=>({...p,notes:e.target.value}))}
+                  placeholder="Add notes, decisions, or hypotheses about your marketing strategy here..."
+                  style={{width:"100%",minHeight:80,padding:"10px 12px",border:"1px solid #e5e1dc",borderRadius:6,fontFamily:sans,fontSize:11,color:"#444",resize:"vertical",boxSizing:"border-box",background:"#fafaf8"}}/>
+              </div>
+            </div>);
+          })()}
         </div>}
 
 
