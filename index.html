@@ -406,7 +406,7 @@ const App = function App(){
       <div style={{maxWidth:1100,margin:"0 auto",padding:"14px 24px"}}>
         {/* NAV */}
         <div style={{display:"flex",gap:2,marginBottom:14,background:"#fff",borderRadius:7,padding:3,width:"fit-content",border:"1px solid #e5e1dc",flexWrap:"wrap"}}>
-          {[["overview","Overview"],["buckets","Engagement Buckets"],["timeline","Timeline"],["pricing","Monthly Pricing"],["success","Success Fees"],["market","Market Comparison"],["budget","Budget vs Actual"],["notes","Comments & Tasks"],["reqs","Requirements"]].map(([k,l])=>(
+          {[["overview","Overview"],["buckets","Engagement Buckets"],["timeline","Timeline"],["pricing","Monthly Pricing"],["success","Success Fees"],["market","Market Comparison"],["budget","Budget vs Actual"],["notes","Comments & Tasks"],["reqs","Requirements"],["marketing","Marketing \& Funnels"],["incentive","Sales Incentives"]].map(([k,l])=>(
             <button key={k} onClick={()=>setView(k)} style={{fontFamily:sans,padding:"5px 11px",borderRadius:5,border:"none",background:view===k?"#333":"transparent",color:view===k?"#fff":"#999",fontSize:10.5,fontWeight:700,cursor:"pointer",position:"relative"}}>
               {l}
               {k==="notes"&&comments.filter(c=>c.status==="Open").length>0&&<span style={{position:"absolute",top:1,right:1,width:6,height:6,borderRadius:"50%",background:"#dc2626"}}/>}
@@ -1140,7 +1140,253 @@ const App = function App(){
           </div>
         </div>
       </div>}
-    </div>
+
+        {/* ═══ MARKETING & FUNNELS ═══ */}
+        {view==="marketing"&&<div>
+          <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1.5,marginBottom:8}}>MARKETING & SALES FUNNELS</div>
+
+          {/* Funnel Overview Cards */}
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:10,marginBottom:16}}>
+            {[
+              {label:"Awareness",icon:"📢",channels:["Social Media (IG/TikTok)","Google Ads","Influencer Partnerships","PR & Press"],color:"#1e40af",bg:"#eff6ff",kpi:"Reach & Impressions",target:"500K+/month"},
+              {label:"Consideration",icon:"🔍",channels:["Google My Business","Menu on Talabat/Noon","Website & SEO","Reviews & Ratings"],color:"#a16207",bg:"#fffbeb",kpi:"Profile Views & Clicks",target:"50K+/month"},
+              {label:"Conversion",icon:"🛒",channels:["Promotions & Offers","Loyalty Programme","Direct Reservations","QC Platform Orders"],color:"#16653a",bg:"#f0fdf4",kpi:"Orders & Covers",target:"Avg check EGP 250+"},
+              {label:"Retention",icon:"💛",channels:["CRM & WhatsApp","Loyalty Points","Birthday/Anniversary","Staff Recognition"],color:"#7c3aed",bg:"#faf5ff",kpi:"Repeat Visit Rate",target:"40%+ repeat customers"},
+            ].map((f,i)=>(
+              <div key={i} style={{background:f.bg,border:`1px solid`,borderColor:f.color+"33",borderLeft:`4px solid ${f.color}`,borderRadius:8,padding:"12px 14px"}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:8}}>
+                  <span style={{fontSize:18}}>{f.icon}</span>
+                  <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:f.color}}>{f.label}</div>
+                </div>
+                {f.channels.map((c,j)=><div key={j} style={{fontFamily:sans,fontSize:10.5,color:"#555",padding:"2px 0",borderBottom:"1px solid #f0ede8"}}>• {c}</div>)}
+                <div style={{marginTop:8,display:"flex",justifyContent:"space-between"}}>
+                  <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1}}>{f.kpi}</div>
+                  <div style={{fontFamily:mono,fontSize:9,color:f.color,fontWeight:700}}>{f.target}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Channel Mix & Budget */}
+          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
+            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:10}}>Recommended Channel Mix & Budget Allocation</div>
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontFamily:sans,fontSize:11}}>
+                <thead>
+                  <tr style={{background:"#f5f3f0"}}>
+                    {["Channel","Type","Monthly Budget (EGP)","Expected Reach","Primary KPI","ROI Potential"].map((h,i)=>(
+                      <th key={i} style={{padding:"6px 10px",textAlign:"left",fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1,borderBottom:"1px solid #e5e1dc",fontWeight:600}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["Instagram / TikTok Ads","Paid Social","15,000–25,000","80K–200K users","Reach, Saves, Profile visits","3–5x"],
+                    ["Google Ads (Search+Maps)","Paid Search","10,000–20,000","20K–60K searches","Clicks, Direction requests","4–7x"],
+                    ["Influencer Marketing","Earned/Paid","10,000–30,000","50K–500K views","Impressions, New followers","2–4x"],
+                    ["Talabat / Noon Ads","Platform Promo","8,000–15,000","30K–100K views","Orders, GMV","5–10x"],
+                    ["Google My Business","Organic","0 (time only)","10K–30K searches","Reviews, Directions","High"],
+                    ["Email / WhatsApp CRM","Retention","3,000–5,000","Existing base","Open rate, Repeat visits","8–15x"],
+                    ["PR & Press","Earned","5,000–10,000","Broad","Brand mentions","Hard to measure"],
+                  ].map((row,i)=>(
+                    <tr key={i} style={{borderBottom:"1px solid #f0ede8",background:i%2===0?"#fff":"#fafaf8"}}>
+                      {row.map((cell,j)=>(
+                        <td key={j} style={{padding:"7px 10px",color:j===0?"#222":"#555",fontWeight:j===0?600:400}}>{cell}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Sales Funnel Metrics */}
+          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
+            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:10}}>Sales Funnel Conversion Benchmarks — F&B Egypt</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:8}}>
+              {[
+                {stage:"Impressions → Profile Visit",benchmark:"2–5%",target:"4%+",color:"#1e40af"},
+                {stage:"Profile Visit → Menu View",benchmark:"30–50%",target:"45%+",color:"#a16207"},
+                {stage:"Menu View → Order/Reservation",benchmark:"5–15%",target:"12%+",color:"#16653a"},
+                {stage:"First Visit → Repeat Visit",benchmark:"20–35%",target:"40%+",color:"#7c3aed"},
+                {stage:"Repeat → Loyal (5+ visits)",benchmark:"10–20%",target:"20%+",color:"#be185d"},
+                {stage:"Avg Order Value Growth",benchmark:"Market flat",target:"+15% YoY",color:"#dc2626"},
+              ].map((m,i)=>(
+                <div key={i} style={{background:"#f9f8f6",borderRadius:6,padding:"10px 12px",borderLeft:`3px solid ${m.color}`}}>
+                  <div style={{fontFamily:sans,fontSize:10,color:"#666",marginBottom:4}}>{m.stage}</div>
+                  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                    <div><div style={{fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:1}}>BENCHMARK</div><div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#888"}}>{m.benchmark}</div></div>
+                    <div style={{textAlign:"right"}}><div style={{fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:1}}>OUR TARGET</div><div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:m.color}}>{m.target}</div></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Marketing Action Plan */}
+          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"14px 16px"}}>
+            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:10}}>90-Day Marketing Action Plan</div>
+            {[
+              {phase:"Month 1 — Audit & Foundation",color:"#dc2626",items:[
+                "Audit existing social accounts, GMB listings, and review profiles across all 8 branches",
+                "Standardise brand assets: logo, photography style, menu photography (all branches)",
+                "Set up CRM / WhatsApp broadcast list from existing customer database",
+                "Claim and optimise all Google My Business listings — photos, hours, menus",
+                "Benchmark current baseline: followers, ratings, monthly orders per channel",
+              ]},
+              {phase:"Month 2 — Activate & Test",color:"#a16207",items:[
+                "Launch paid social campaigns (IG/TikTok) — 2-week test per branch, EGP 5K budget",
+                "Run Google Ads for top 3 revenue branches — search + maps",
+                "Activate Talabat/Noon promotional placements for quick commerce revenue push",
+                "Onboard 2 micro-influencers per branch (10K–100K followers, food niche)",
+                "Launch WhatsApp loyalty broadcast — weekly deal to existing customers",
+              ]},
+              {phase:"Month 3 — Optimise & Scale",color:"#16653a",items:[
+                "Analyse Month 1–2 data: identify top-performing channels per branch",
+                "Reallocate budget to highest-ROI channels; cut underperformers",
+                "Launch referral programme: 'Bring a friend, get X% off' across branches",
+                "Introduce seasonal/Ramadan campaign if timing aligns",
+                "Report: revenue attributable to marketing vs. baseline",
+              ]},
+            ].map((ph,i)=>(
+              <div key={i} style={{marginBottom:12,borderLeft:`3px solid ${ph.color}`,paddingLeft:12}}>
+                <div style={{fontFamily:disp,fontSize:12,fontWeight:700,color:ph.color,marginBottom:6}}>{ph.phase}</div>
+                {ph.items.map((item,j)=>(
+                  <div key={j} style={{fontFamily:sans,fontSize:10.5,color:"#555",padding:"3px 0",display:"flex",gap:6}}>
+                    <span style={{color:ph.color,fontWeight:700,flexShrink:0}}>→</span>{item}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>}
+
+        {/* ═══ SALES INCENTIVES ═══ */}
+        {view==="incentive"&&<div>
+          <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1.5,marginBottom:8}}>SALES TEAM INCENTIVE SCHEME</div>
+
+          {/* Philosophy */}
+          <div style={{background:"#fff",border:"1px solid #fecaca",borderLeft:"4px solid #dc2626",borderRadius:8,padding:"12px 16px",marginBottom:12}}>
+            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#dc2626",marginBottom:4}}>Design Philosophy</div>
+            <div style={{fontFamily:sans,fontSize:11,color:"#444",lineHeight:1.6}}>Incentives must drive <strong>revenue growth</strong>, <strong>margin protection</strong>, and <strong>repeat customer behaviour</strong> — not just covers or top-line sales. Every scheme here ties individual performance to branch-level EBITDA improvement, preventing the trap of high revenue at poor margin.</div>
+          </div>
+
+          {/* Roles & Tiers */}
+          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
+            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:10}}>Role Tiers & Base Commission Structure</div>
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%",borderCollapse:"collapse",fontFamily:sans,fontSize:11}}>
+                <thead>
+                  <tr style={{background:"#f5f3f0"}}>
+                    {["Role","Base Salary Range","Commission Base","Accelerator (110%+ target)","Accelerator (125%+ target)","Cap"].map((h,i)=>(
+                      <th key={i} style={{padding:"6px 10px",textAlign:"left",fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1,borderBottom:"1px solid #e5e1dc",fontWeight:600}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {[
+                    ["Branch Manager","EGP 8,000–14,000","2% of branch EBITDA improvement","2.5% (bonus tier)","3.5% (stretch tier)","EGP 25,000/month"],
+                    ["Floor Supervisor","EGP 5,000–8,000","1% of branch revenue above target","1.25%","1.75%","EGP 12,000/month"],
+                    ["Waiter / Service Staff","EGP 3,000–5,000","EGP 50 per table above EGP 300 avg check","EGP 75/table","EGP 100/table","EGP 6,000/month"],
+                    ["QC Coordinator (Delivery)","EGP 4,000–6,000","0.5% of QC revenue above target","0.75%","1%","EGP 8,000/month"],
+                    ["Reservations / Host","EGP 3,500–5,500","EGP 25/cover for pre-booked tables","EGP 35/cover","EGP 50/cover","EGP 5,000/month"],
+                    ["Sales Manager (Central)","EGP 12,000–18,000","1.5% of total revenue above group target","2%","3%","EGP 30,000/month"],
+                  ].map((row,i)=>(
+                    <tr key={i} style={{borderBottom:"1px solid #f0ede8",background:i%2===0?"#fff":"#fafaf8"}}>
+                      {row.map((cell,j)=>(
+                        <td key={j} style={{padding:"7px 10px",color:j===0?"#222":"#555",fontWeight:j===0?600:400}}>{cell}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* KPI Bonuses */}
+          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
+            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:10}}>KPI-Based Bonus Triggers</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:8}}>
+              {[
+                {kpi:"Average Check Uplift",desc:"Branch avg check grows ≥ 10% vs prior month",bonus:"EGP 2,000 per branch manager",icon:"📈",color:"#16653a"},
+                {kpi:"Food Cost Below Target",desc:"Branch FC% ≤ target for 2 consecutive months",bonus:"EGP 3,000 per branch manager",icon:"🍽",color:"#a16207"},
+                {kpi:"Customer Review Score",desc:"Google rating reaches 4.5+ or improves by 0.3",bonus:"EGP 1,500 team bonus (split equally)",icon:"⭐",color:"#ca8a04"},
+                {kpi:"Upsell Rate",desc:"Dessert/drink attach rate ≥ 40% of dine-in covers",bonus:"EGP 100/waiter per week at target",icon:"🥂",color:"#7c3aed"},
+                {kpi:"Zero Shrinkage Month",desc:"Stock variance < 0.5% for the month",bonus:"EGP 2,500 ops team bonus",icon:"📦",color:"#1e40af"},
+                {kpi:"QC Order Growth",desc:"QC revenue grows ≥ 15% month-on-month",bonus:"EGP 1,500 QC coordinator bonus",icon:"🛵",color:"#be185d"},
+                {kpi:"Loyalty Sign-ups",desc:"≥ 50 new loyalty members registered in the month",bonus:"EGP 500 host/reservations bonus",icon:"💛",color:"#dc2626"},
+                {kpi:"Repeat Visit Rate",desc:"Measurable repeat customer rate ≥ 35%",bonus:"EGP 1,000 floor team bonus",icon:"🔄",color:"#0f766e"},
+              ].map((b,i)=>(
+                <div key={i} style={{background:"#f9f8f6",borderRadius:6,padding:"10px 12px",borderLeft:`3px solid ${b.color}`}}>
+                  <div style={{display:"flex",gap:6,alignItems:"center",marginBottom:4}}>
+                    <span style={{fontSize:16}}>{b.icon}</span>
+                    <div style={{fontFamily:disp,fontSize:11,fontWeight:700,color:b.color}}>{b.kpi}</div>
+                  </div>
+                  <div style={{fontFamily:sans,fontSize:10,color:"#666",marginBottom:6}}>{b.desc}</div>
+                  <div style={{fontFamily:mono,fontSize:9,color:b.color,fontWeight:700}}>{b.bonus}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Leaderboard Structure */}
+          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
+            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:10}}>Monthly Branch Leaderboard — Competition Structure</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:10,marginBottom:12}}>
+              {[
+                {rank:"🥇 1st Place",prize:"EGP 10,000 team bonus + Trophy + Group recognition",bg:"#fef9c3",bdr:"#ca8a04"},
+                {rank:"🥈 2nd Place",prize:"EGP 5,000 team bonus + Certificate",bg:"#f1f5f9",bdr:"#94a3b8"},
+                {rank:"🥉 3rd Place",prize:"EGP 2,500 team bonus + Recognition",bg:"#fff7ed",bdr:"#c2410c"},
+              ].map((r,i)=>(
+                <div key={i} style={{background:r.bg,border:`1px solid ${r.bdr}`,borderRadius:8,padding:"12px 14px",textAlign:"center"}}>
+                  <div style={{fontFamily:disp,fontSize:14,fontWeight:700,marginBottom:6}}>{r.rank}</div>
+                  <div style={{fontFamily:sans,fontSize:10.5,color:"#555"}}>{r.prize}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{fontFamily:sans,fontSize:11,color:"#555",marginBottom:8}}><strong>Scoring formula:</strong> Each branch scored monthly across 5 weighted metrics:</div>
+            {[
+              ["Revenue vs Target",25],
+              ["EBITDA Margin",30],
+              ["Average Check vs Target",15],
+              ["Customer Rating (Google/Talabat)",15],
+              ["Food Cost % vs Target",15],
+            ].map(([metric,weight],i)=>(
+              <div key={i} style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
+                <div style={{fontFamily:sans,fontSize:10.5,color:"#444",width:220,flexShrink:0}}>{metric}</div>
+                <div style={{flex:1,background:"#f0ede8",borderRadius:4,height:8,overflow:"hidden"}}>
+                  <div style={{width:`${weight*4}%`,height:"100%",background:"#D4863A",borderRadius:4}}/>
+                </div>
+                <div style={{fontFamily:mono,fontSize:9,color:"#D4863A",fontWeight:700,width:40,textAlign:"right"}}>{weight}%</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Guardrails */}
+          <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:8,padding:"14px 16px"}}>
+            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:8}}>Scheme Guardrails & Anti-Gaming Rules</div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(250px,1fr))",gap:8}}>
+              {[
+                {rule:"Commission only paid if branch FC% ≤ target",reason:"Prevents revenue chasing at margin expense",icon:"🔒"},
+                {rule:"No bonus if shrinkage > 2% that month",reason:"Protects inventory integrity",icon:"🔒"},
+                {rule:"Avg check target resets monthly (no sandbagging)",reason:"Prevents holding back performance",icon:"🔒"},
+                {rule:"QC commissions net of platform fees",reason:"Commissions on actual realised revenue only",icon:"🔒"},
+                {rule:"Disputes reviewed by C² + CFO jointly",reason:"Independent verification prevents manipulation",icon:"🔒"},
+                {rule:"All bonuses paid on 15th of following month",reason:"Aligns with P&L close and verification",icon:"🔒"},
+              ].map((g,i)=>(
+                <div key={i} style={{display:"flex",gap:8,padding:"8px 10px",background:"#f9f8f6",borderRadius:6,alignItems:"flex-start"}}>
+                  <span style={{fontSize:14,flexShrink:0}}>{g.icon}</span>
+                  <div>
+                    <div style={{fontFamily:sans,fontSize:10.5,fontWeight:600,color:"#222",marginBottom:2}}>{g.rule}</div>
+                    <div style={{fontFamily:sans,fontSize:9.5,color:"#888"}}>{g.reason}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>}
+
+      </div>
   );
 }
 
