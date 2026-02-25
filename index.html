@@ -1165,456 +1165,459 @@ const App = function App(){
         </div>}
 
 
-        {view==="mktplan"&&<div>
+        {view==="mktplan"&&(()=>{
+          // ─── COMPUTED GLOBALS ───
+          const P=mktPlan.pricing;
+          const nights=Number(P.ramadanNights)||30;
+          const avgIftar=Number(P.avgCheckIftar)||340;
+          const avgSuhoor=Number(P.avgCheckSuhoor)||280;
+          const avgDel=Number(P.avgCheckDelivery)||185;
+          const iftarCov=Number(P.iftarCoversPerNight)||320;
+          const suhoorCov=Number(P.suhoorCoversPerNight)||140;
+          const delOrd=Number(P.deliveryOrdersPerMonth)||680;
+          const repRate=Number(P.repeatRate)||45;
 
-          {/* ── COMPUTED CORE — single source of truth for all sections ── */}
-          {(()=>{
-            const p=mktPlan.pricing;
-            const aChs=Object.values(mktPlan.channels).filter(c=>c.active);
-            const totalBudget=aChs.reduce((s,c)=>s+(Number(c.budget)||0),0);
-            const totalImp=aChs.reduce((s,c)=>s+(Number(c.impressions)||0),0);
-            const totalClicks=aChs.reduce((s,c)=>s+(Number(c.clicks)||0),0);
-            const totalOrders=aChs.reduce((s,c)=>s+(Number(c.orders)||0),0);
+          // B2C channel aggregates
+          const active=Object.entries(mktPlan.channels).filter(([,c])=>c.active);
+          const chColors={social:"#be185d",google:"#1e40af",influencer:"#a16207",talabat:"#16653a",crm:"#7c3aed",gmb:"#0f766e",corporate:"#d97706"};
+          const totalB2CBudget=active.reduce((s,[,c])=>s+(Number(c.budget)||0),0);
+          const totalImp=active.reduce((s,[,c])=>s+(Number(c.impressions)||0),0);
+          const totalClicks=active.reduce((s,[,c])=>s+(Number(c.clicks)||0),0);
+          const totalB2COrders=active.reduce((s,[,c])=>s+(Number(c.orders)||0),0);
 
-            // Variable sales model: orders scale with spend / CAC
-            const blendedCac=totalOrders>0&&totalBudget>0?totalBudget/totalOrders:0;
-            // If no actuals entered, estimate from spend assuming EGP 60 CAC baseline
-            const estCac=blendedCac>0?blendedCac:60;
-            const estOrders=blendedCac>0?totalOrders:Math.round(totalBudget/estCac);
+          // Per-channel CAC & conversion
+          const chMetrics=active.map(([k,c])=>{
+            const imp=Number(c.impressions)||0;
+            const clicks=Number(c.clicks)||0;
+            const orders=Number(c.orders)||0;
+            const budget=Number(c.budget)||0;
+            const ctr=imp>0?(clicks/imp*100):0;
+            const cvr=clicks>0?(orders/clicks*100):0;
+            const cac=orders>0&&budget>0?Math.round(budget/orders):null;
+            const avgSpend=orders>0?(orders*avgIftar):0; // revenue this channel drove
+            const roas=budget>0&&avgSpend>0?(avgSpend/budget):null;
+            return {k,c,imp,clicks,orders,budget,ctr,cvr,cac,roas,color:chColors[k]||"#888",name:c.name.split("—")[0].trim()};
+          });
+          const blendedCAC=totalB2COrders>0&&totalB2CBudget>0?Math.round(totalB2CBudget/totalB2COrders):0;
 
-            // B2B corporate
-            const b2b=mktPlan.b2b;
-            const b2bClosedClients=b2b.active?Math.round((Number(b2b.pipelineClients)||0)*(Number(b2b.closeRate)||0)/100):0;
-            const b2bCovers=b2bClosedClients*(Number(b2b.avgGroupSize)||0)*(Number(b2b.bookingsPerClient)||0);
-            const b2bRevPerBranch=b2bCovers*(Number(b2b.avgPackagePrice)||0);
-            const b2bRoiMultiple=b2b.active&&Number(b2b.salesBudget)>0?((b2bRevPerBranch*8)/Number(b2b.salesBudget)/8).toFixed(1):0;
+          // B2B pipeline
+          const B=mktPlan.b2b;
+          const b2bActive=B.active;
+          const pipeline=Number(B.pipelineClients)||12;
+          const closeRate=Number(B.closeRate)||40;
+          const groupSize=Number(B.avgGroupSize)||25;
+          const pkgPrice=Number(B.avgPackagePrice)||280;
+          const bookings=Number(B.bookingsPerClient)||2;
+          const b2bBudget=Number(B.salesBudget)||8000;
+          const b2bWonClients=Math.round(pipeline*(closeRate/100));
+          const b2bCovers=b2bWonClients*groupSize*bookings;
+          const b2bRevenue=b2bCovers*pkgPrice;
+          const b2bCAC=b2bWonClients>0?Math.round(b2bBudget/b2bWonClients):0;
+          const b2bCoverCAC=b2bCovers>0?Math.round(b2bBudget/b2bCovers):0;
 
-            // Revenue per branch
-            const nights=Number(p.ramadanNights)||30;
-            const iftarRev=(Number(p.iftarCoversPerNight)||0)*nights*(Number(p.avgCheckIftar)||0);
-            const suhoorRev=(Number(p.suhoorCoversPerNight)||0)*nights*(Number(p.avgCheckSuhoor)||0);
-            const delivRev=(Number(p.deliveryOrdersPerMonth)||0)*(Number(p.avgCheckDelivery)||0);
-            const b2cRev=iftarRev+suhoorRev+delivRev;
-            const branchRev=b2cRev+b2bRevPerBranch;
-            const groupRev=branchRev*8;
-            const totalMktSpend=(totalBudget+(b2b.active?Number(b2b.salesBudget)||0:0))*8;
-            const groupRevenueROI=totalMktSpend>0?((groupRev-totalMktSpend)/totalMktSpend).toFixed(1):0;
+          // Revenue totals
+          const b2cRevPerBranch=iftarCov*nights*avgIftar + suhoorCov*nights*avgSuhoor + delOrd*avgDel;
+          const b2cRev8=b2cRevPerBranch*8;
+          const totalRev8=b2cRev8+(b2bActive?b2bRevenue*8:0);
+          const totalBudget=totalB2CBudget+(b2bActive?b2bBudget:0);
+          const totalBudget8=totalBudget*8;
+          const overallROI=totalBudget8>0?((totalRev8-totalBudget8)/totalBudget8).toFixed(1):0;
 
-            // Funnel
-            const imp=totalImp||380000;
-            const visits=totalClicks||Math.round(imp*0.044);
-            const menuViews=Math.round(visits*0.44);
-            const orders=totalOrders||Math.round(menuViews*0.256);
-            const repeats=Math.round(orders*((Number(p.repeatRate)||45)/100));
-            const topV=Math.max(imp,1);
+          // Funnel
+          const fStages=[
+            {label:"Impressions",val:totalImp,color:"#1e40af",icon:"👁",pct:100},
+            {label:"Clicks / Reach",val:totalClicks,color:"#a16207",icon:"🔍",pct:totalImp>0?(totalClicks/totalImp*100):0},
+            {label:"Orders / Covers",val:totalB2COrders,color:"#16653a",icon:"🛒",pct:totalImp>0?(totalB2COrders/totalImp*100):0},
+            {label:"Repeat Customers",val:Math.round(totalB2COrders*(repRate/100)),color:"#be185d",icon:"🔄",pct:totalImp>0?(Math.round(totalB2COrders*(repRate/100))/totalImp*100):0},
+          ];
+          const topFVal=Math.max(...fStages.map(s=>s.val),1);
 
-            // CAC sensitivity: what happens if we change spend?
-            const cacSensitivity=[0.5,0.75,1,1.25,1.5,2].map(mult=>({
-              mult,
-              spend:Math.round(totalBudget*mult),
-              orders:estCac>0?Math.round(totalBudget*mult/estCac):0,
-              revenue:estCac>0?Math.round(totalBudget*mult/estCac*(Number(p.avgCheckIftar)||340)):0,
-            }));
+          return(
+          <div>
 
-            const chColors={social:"#be185d",google:"#1e40af",influencer:"#a16207",talabat:"#16653a",crm:"#7c3aed",gmb:"#0f766e"};
-
-            return(<div>
-
-              {/* ═══ DARK HEADER ═══ */}
-              <div style={{background:"linear-gradient(135deg,#0d0d1a,#1a0a2e,#2d1b4e)",borderRadius:12,padding:"20px 22px",marginBottom:12,color:"#fff",position:"relative",overflow:"hidden"}}>
-                <div style={{position:"absolute",top:-20,right:-20,fontSize:80,opacity:0.06}}>🌙</div>
-                <div style={{fontFamily:mono,fontSize:8,color:"rgba(212,175,55,0.6)",letterSpacing:3,marginBottom:5}}>RAMADAN 1446 · ABOU SHAKRA F&B · 8 BRANCHES</div>
-                <div style={{fontFamily:disp,fontSize:22,fontWeight:800,color:"#f5e6a3",marginBottom:3}}>رمضان Marketing & Sales Budget</div>
-                <div style={{fontFamily:sans,fontSize:10.5,color:"rgba(255,255,255,0.45)",marginBottom:16,maxWidth:520}}>All revenue projections update live as you change budgets, CAC, and pricing below. B2C + B2B combined.</div>
-                <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-                  {[
-                    {l:"Total Mkt Spend",v:`EGP ${totalBudget.toLocaleString()}`,s:`${aChs.length} B2C channels`,gold:true},
-                    {l:"B2C Orders",v:orders.toLocaleString(),s:blendedCac>0?"from actuals":"estimated"},
-                    {l:"Blended CAC",v:blendedCac>0?`EGP ${Math.round(blendedCac)}`:`~EGP ${Math.round(estCac)}`,s:blendedCac>0?"actual":"estimate"},
-                    {l:"B2B Covers (Ramadan)",v:b2b.active?b2bCovers.toLocaleString():"Off",s:`${b2bClosedClients} corporate clients`},
-                    {l:"Group Revenue",v:`EGP ${Math.round(groupRev/1000)}K`,s:"B2C + B2B × 8 branches",gold:true},
-                    {l:"Revenue ROI",v:`${groupRevenueROI}×`,s:"(rev − spend) / spend",gold:Number(groupRevenueROI)>=5},
-                  ].map((s,i)=>(
-                    <div key={i} style={{background:s.gold?"rgba(212,175,55,0.15)":"rgba(255,255,255,0.07)",border:s.gold?"1px solid rgba(212,175,55,0.3)":"1px solid rgba(255,255,255,0.08)",borderRadius:8,padding:"10px 14px",minWidth:110}}>
-                      <div style={{fontFamily:mono,fontSize:7,color:s.gold?"rgba(212,175,55,0.7)":"rgba(255,255,255,0.35)",letterSpacing:1,marginBottom:4}}>{s.l.toUpperCase()}</div>
-                      <div style={{fontFamily:disp,fontSize:17,fontWeight:800,color:s.gold?"#f5e6a3":"#fff"}}>{s.v}</div>
-                      <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(255,255,255,0.3)",marginTop:2}}>{s.s}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* ═══ B2C CHANNEL TABLE ═══ */}
-              <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
-                <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222",marginBottom:2}}>🌙 B2C Channel Budget & Actuals</div>
-                <div style={{fontFamily:mono,fontSize:8.5,color:"#999",marginBottom:10}}>Budget drives estimated orders via CAC. Enter actuals as they come in — ROAS and funnel update automatically.</div>
-                {/* Budget bar */}
-                <div style={{display:"flex",height:8,borderRadius:4,overflow:"hidden",marginBottom:10,background:"#f0ede8"}}>
-                  {aChs.filter(c=>Number(c.budget)>0).map((c,i)=>{
-                    const key=Object.keys(mktPlan.channels).find(k=>mktPlan.channels[k]===c)||i;
-                    return <div key={i} style={{flex:Number(c.budget),background:chColors[key]||"#888"}}/>;
-                  })}
-                </div>
-                <div style={{overflowX:"auto"}}>
-                  <table style={{width:"100%",borderCollapse:"collapse",fontFamily:sans,fontSize:11}}>
-                    <thead>
-                      <tr style={{background:"#fafaf5"}}>
-                        {["","Channel","Budget (EGP)","Impressions","Clicks","Orders (actual)","Est. CAC","ROAS","Signal"].map((h,i)=>(
-                          <th key={i} style={{padding:"6px 10px",textAlign:"left",fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:1,borderBottom:"2px solid #e5e1dc",fontWeight:700,whiteSpace:"nowrap"}}>{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(mktPlan.channels).map(([key,ch])=>{
-                        const cc=chColors[key]||"#888";
-                        const chOrders=Number(ch.orders)||0;
-                        const chBudget=Number(ch.budget)||0;
-                        const chCac=chOrders>0&&chBudget>0?Math.round(chBudget/chOrders):chBudget>0?Math.round(chBudget/(chBudget/estCac)):0;
-                        const avgChk=Number(p.avgCheckIftar)||340;
-                        const chRoas=chCac>0?(avgChk/chCac).toFixed(1):null;
-                        const r=Number(chRoas)||0;
-                        const rc=r>=5?"#16653a":r>=3?"#a16207":r>0?"#dc2626":"#bbb";
-                        return(
-                          <tr key={key} style={{borderBottom:"1px solid #f5f3f0",opacity:ch.active?1:0.4}}>
-                            <td style={{padding:"7px 10px"}}>
-                              <input type="checkbox" checked={ch.active} onChange={e=>updMktCh(key,"active",e.target.checked)} style={{cursor:"pointer",accentColor:cc}}/>
-                            </td>
-                            <td style={{padding:"7px 10px",fontWeight:600,color:ch.active?"#222":"#aaa"}}>
-                              <div style={{display:"flex",alignItems:"center",gap:5}}>
-                                <div style={{width:3,height:16,borderRadius:2,background:ch.active?cc:"#ddd",flexShrink:0}}/>
-                                {ch.name}
-                              </div>
-                            </td>
-                            <td style={{padding:"7px 10px"}}>
-                              <input type="number" value={ch.budget} onChange={e=>updMktCh(key,"budget",Number(e.target.value))}
-                                style={{width:82,padding:"3px 7px",border:`1px solid ${cc}40`,borderRadius:4,fontFamily:mono,fontSize:10,fontWeight:700,color:cc}}/>
-                            </td>
-                            {["impressions","clicks","orders"].map(f=>(
-                              <td key={f} style={{padding:"7px 10px"}}>
-                                <input type="text" value={ch[f]} onChange={e=>updMktCh(key,f,e.target.value)} placeholder="—"
-                                  style={{width:75,padding:"3px 7px",border:"1px solid #e5e1dc",borderRadius:4,fontFamily:mono,fontSize:10}}/>
-                              </td>
-                            ))}
-                            <td style={{padding:"7px 10px",fontFamily:mono,fontSize:9,color:rc}}>
-                              {chCac>0?`EGP ${chCac}`:"—"}
-                            </td>
-                            <td style={{padding:"7px 10px",fontFamily:mono,fontSize:10,fontWeight:700,color:rc}}>
-                              {chRoas?`${chRoas}×`:"—"}
-                            </td>
-                            <td style={{padding:"7px 10px"}}>
-                              {r>=5?<span style={{fontFamily:mono,fontSize:7.5,color:"#16653a",background:"#f0fdf4",padding:"2px 6px",borderRadius:3,fontWeight:700}}>🚀 SCALE</span>
-                              :r>=3?<span style={{fontFamily:mono,fontSize:7.5,color:"#a16207",background:"#fffbeb",padding:"2px 6px",borderRadius:3,fontWeight:700}}>✓ HOLD</span>
-                              :r>0?<span style={{fontFamily:mono,fontSize:7.5,color:"#dc2626",background:"#fef2f2",padding:"2px 6px",borderRadius:3,fontWeight:700}}>⚠ REVIEW</span>
-                              :<span style={{fontFamily:mono,fontSize:7.5,color:"#bbb",padding:"2px 6px",borderRadius:3}}>NO DATA</span>}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr style={{background:"#f5f3f0",borderTop:"2px solid #e5e1dc"}}>
-                        <td colSpan={2} style={{padding:"7px 10px",fontFamily:mono,fontSize:8.5,fontWeight:700,color:"#555"}}>TOTALS (ACTIVE)</td>
-                        <td style={{padding:"7px 10px",fontFamily:mono,fontSize:10,fontWeight:800,color:"#be185d"}}>EGP {totalBudget.toLocaleString()}</td>
-                        <td style={{padding:"7px 10px",fontFamily:mono,fontSize:10,fontWeight:700,color:"#1e40af"}}>{totalImp>0?totalImp.toLocaleString():"—"}</td>
-                        <td style={{padding:"7px 10px",fontFamily:mono,fontSize:10,fontWeight:700,color:"#a16207"}}>{totalClicks>0?totalClicks.toLocaleString():"—"}</td>
-                        <td style={{padding:"7px 10px",fontFamily:mono,fontSize:10,fontWeight:700,color:"#16653a"}}>{totalOrders>0?totalOrders.toLocaleString():"—"}</td>
-                        <td style={{padding:"7px 10px",fontFamily:mono,fontSize:9,fontWeight:700,color:"#16653a"}}>{blendedCac>0?`EGP ${Math.round(blendedCac)}`:"—"}</td>
-                        <td colSpan={2}></td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </div>
-
-              {/* ═══ B2B CORPORATE IFTAR ═══ */}
-              <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
-                  <div>
-                    <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222"}}>🏢 B2B Corporate Iftar Sales</div>
-                    <div style={{fontFamily:mono,fontSize:8.5,color:"#999",marginTop:2}}>Corporate bookings — offices, companies, events. Highest avg check, most predictable volume.</div>
-                  </div>
-                  <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
-                    <input type="checkbox" checked={b2b.active} onChange={e=>updMktB2B("active",e.target.checked)} style={{width:16,height:16,accentColor:"#d97706"}}/>
-                    <span style={{fontFamily:mono,fontSize:9,color:"#d97706",fontWeight:700}}>ACTIVE</span>
-                  </label>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(175px,1fr))",gap:10,marginBottom:12,opacity:b2b.active?1:0.4}}>
-                  {[
-                    {l:"Pipeline (corporate clients)",f:"pipelineClients",ico:"📋",c:"#d97706",d:"Companies contacted / in talks"},
-                    {l:"Expected Close Rate (%)",f:"closeRate",ico:"🎯",c:"#16653a",d:"% of pipeline that will book"},
-                    {l:"Avg Group Size (covers)",f:"avgGroupSize",ico:"👥",c:"#1e40af",d:"Covers per corporate booking"},
-                    {l:"Package Price / Person (EGP)",f:"avgPackagePrice",ico:"💳",c:"#be185d",d:"EGP per cover — corporate Iftar"},
-                    {l:"Bookings / Client (Ramadan)",f:"bookingsPerClient",ico:"🔄",c:"#7c3aed",d:"How many times they repeat"},
-                    {l:"Corporate Sales Budget (EGP)",f:"salesBudget",ico:"📣",c:"#0f766e",d:"Outreach, meetings, materials"},
-                  ].map(({l,f,ico,c,d})=>(
-                    <div key={f} style={{background:"#fffbeb",borderRadius:8,padding:"11px",borderLeft:`3px solid ${c}`}}>
-                      <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:4}}>
-                        <span style={{fontSize:13}}>{ico}</span>
-                        <div style={{fontFamily:mono,fontSize:7,color:"#92400e",letterSpacing:1}}>{l.toUpperCase()}</div>
-                      </div>
-                      <input type="number" value={b2b[f]||""} onChange={e=>updMktB2B(f,Number(e.target.value))} disabled={!b2b.active}
-                        style={{width:"100%",padding:"4px 8px",border:`1px solid ${c}40`,borderRadius:4,fontFamily:mono,fontSize:14,fontWeight:700,color:c,boxSizing:"border-box",marginBottom:3}}/>
-                      <div style={{fontFamily:sans,fontSize:8,color:"#aaa"}}>{d}</div>
-                    </div>
-                  ))}
-                </div>
-                {b2b.active&&(
-                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:8,background:"#fffbeb",borderRadius:8,padding:"12px 14px",border:"1px solid #fcd34d"}}>
-                    <div>
-                      <div style={{fontFamily:mono,fontSize:7.5,color:"#92400e",letterSpacing:1,marginBottom:2}}>CLIENTS EXPECTED TO CLOSE</div>
-                      <div style={{fontFamily:disp,fontSize:20,fontWeight:800,color:"#d97706"}}>{b2bClosedClients}</div>
-                      <div style={{fontFamily:mono,fontSize:8,color:"#bbb"}}>{b2b.pipelineClients} pipeline × {b2b.closeRate}% close</div>
-                    </div>
-                    <div>
-                      <div style={{fontFamily:mono,fontSize:7.5,color:"#92400e",letterSpacing:1,marginBottom:2}}>TOTAL B2B COVERS</div>
-                      <div style={{fontFamily:disp,fontSize:20,fontWeight:800,color:"#d97706"}}>{b2bCovers.toLocaleString()}</div>
-                      <div style={{fontFamily:mono,fontSize:8,color:"#bbb"}}>{b2bClosedClients} clients × {b2b.avgGroupSize} pax × {b2b.bookingsPerClient} bookings</div>
-                    </div>
-                    <div>
-                      <div style={{fontFamily:mono,fontSize:7.5,color:"#92400e",letterSpacing:1,marginBottom:2}}>B2B REVENUE / BRANCH</div>
-                      <div style={{fontFamily:disp,fontSize:20,fontWeight:800,color:"#d97706"}}>EGP {b2bRevPerBranch.toLocaleString()}</div>
-                      <div style={{fontFamily:mono,fontSize:8,color:"#bbb"}}>{b2bCovers} covers × EGP {b2b.avgPackagePrice}/person</div>
-                    </div>
-                    <div>
-                      <div style={{fontFamily:mono,fontSize:7.5,color:"#92400e",letterSpacing:1,marginBottom:2}}>B2B REVENUE ROI</div>
-                      <div style={{fontFamily:disp,fontSize:20,fontWeight:800,color:Number(b2bRoiMultiple)>=5?"#16653a":Number(b2bRoiMultiple)>=2?"#d97706":"#dc2626"}}>{b2bRoiMultiple}×</div>
-                      <div style={{fontFamily:mono,fontSize:8,color:"#bbb"}}>rev vs sales budget</div>
-                    </div>
-                    <div>
-                      <div style={{fontFamily:mono,fontSize:7.5,color:"#92400e",letterSpacing:1,marginBottom:2}}>B2B GROUP REVENUE (×8)</div>
-                      <div style={{fontFamily:disp,fontSize:20,fontWeight:800,color:"#d97706"}}>EGP {(b2bRevPerBranch*8).toLocaleString()}</div>
-                      <div style={{fontFamily:mono,fontSize:8,color:"#bbb"}}>all 8 branches combined</div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* ═══ PRICING INPUTS ═══ */}
-              <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
-                <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222",marginBottom:2}}>🧾 Pricing & Volume Inputs</div>
-                <div style={{fontFamily:mono,fontSize:8.5,color:"#999",marginBottom:10}}>These drive all revenue calculations below. Change any value — revenue, ROI, and CAC sensitivity update instantly.</div>
-                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(165px,1fr))",gap:10}}>
-                  {[
-                    {l:"Avg Check — Iftar (EGP)",f:"avgCheckIftar",c:"#be185d",ico:"🌙",d:"Per cover, Iftar 7–10pm"},
-                    {l:"Avg Check — Suhoor (EGP)",f:"avgCheckSuhoor",c:"#7c3aed",ico:"⭐",d:"Per cover, Suhoor 1–3am"},
-                    {l:"Avg Check — Delivery (EGP net)",f:"avgCheckDelivery",c:"#16653a",ico:"🛵",d:"After platform commission"},
-                    {l:"Iftar Covers / Night / Branch",f:"iftarCoversPerNight",c:"#be185d",ico:"🪑",d:"Peak session capacity"},
-                    {l:"Suhoor Covers / Night / Branch",f:"suhoorCoversPerNight",c:"#7c3aed",ico:"🪑",d:"Late night session"},
-                    {l:"Delivery Orders / Month / Branch",f:"deliveryOrdersPerMonth",c:"#16653a",ico:"📦",d:"Talabat + Noon + direct"},
-                    {l:"Repeat Customer Rate (%)",f:"repeatRate",c:"#1e40af",ico:"🔄",d:"Customers who return"},
-                    {l:"Ramadan Nights",f:"ramadanNights",c:"#a16207",ico:"📅",d:"Usually 29–30 nights"},
-                  ].map(({l,f,c,ico,d})=>(
-                    <div key={f} style={{background:"#f9f8f6",borderRadius:8,padding:"11px",borderLeft:`3px solid ${c}`}}>
-                      <div style={{display:"flex",alignItems:"center",gap:4,marginBottom:4}}>
-                        <span style={{fontSize:13}}>{ico}</span>
-                        <div style={{fontFamily:mono,fontSize:7,color:"#999",letterSpacing:1}}>{l.toUpperCase()}</div>
-                      </div>
-                      <input type="number" value={p[f]||""} onChange={e=>updMktPricing(f,Number(e.target.value))}
-                        style={{width:"100%",padding:"4px 8px",border:`1px solid ${c}40`,borderRadius:4,fontFamily:mono,fontSize:14,fontWeight:700,color:c,boxSizing:"border-box",marginBottom:3}}/>
-                      <div style={{fontFamily:sans,fontSize:8,color:"#aaa"}}>{d}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* ═══ LIVE FUNNEL ═══ */}
-              <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
-                <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222",marginBottom:2}}>📊 Live Sales Funnel — B2C</div>
-                <div style={{fontFamily:mono,fontSize:8.5,color:"#999",marginBottom:12}}>Aggregated from channel actuals. * = estimated from benchmarks where actuals not entered.</div>
-                <div style={{display:"grid",gridTemplateColumns:"3fr 2fr",gap:12}}>
-                  <div>
-                    {[
-                      {label:"Impressions",val:imp,est:totalImp===0,color:"#1e40af"},
-                      {label:"Profile Visits",val:visits,est:totalClicks===0,color:"#a16207"},
-                      {label:"Menu Views",val:menuViews,est:true,color:"#16653a"},
-                      {label:"Orders / Covers",val:orders,est:totalOrders===0,color:"#7c3aed"},
-                      {label:"Repeat Customers",val:repeats,est:true,color:"#be185d"},
-                    ].map((s,i,arr)=>{
-                      const prev=i>0?arr[i-1].val:0;
-                      const cr=prev>0?((s.val/prev)*100).toFixed(1):null;
-                      return(
-                        <div key={i} style={{marginBottom:9}}>
-                          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
-                            <span style={{fontFamily:sans,fontSize:10,color:"#555",fontStyle:s.est?"italic":"normal"}}>{s.label}{s.est?" *":""}</span>
-                            <div style={{display:"flex",gap:7,alignItems:"center"}}>
-                              {cr&&<span style={{fontFamily:mono,fontSize:8,color:s.color,background:s.color+"15",padding:"1px 5px",borderRadius:3,fontWeight:700}}>{cr}%</span>}
-                              <span style={{fontFamily:mono,fontSize:11,fontWeight:800,color:s.est?"#bbb":s.color}}>{s.val.toLocaleString()}</span>
-                            </div>
-                          </div>
-                          <div style={{height:14,background:"#f0ede8",borderRadius:4,overflow:"hidden"}}>
-                            <div style={{height:"100%",width:`${Math.max(s.val/topV*100,0.5)}%`,background:s.est?s.color+"55":s.color,transition:"width 0.4s",borderRadius:4}}/>
-                          </div>
-                        </div>
-                      );
-                    })}
-                    <div style={{fontFamily:mono,fontSize:7.5,color:"#ccc",marginTop:4}}>* Estimated from benchmarks — fill actuals in channel table</div>
-                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:10}}>
-                      <div style={{padding:"10px 12px",background:"#f0fdf4",borderRadius:6,border:"1px solid #bbf7d0"}}>
-                        <div style={{fontFamily:mono,fontSize:7.5,color:"#999",marginBottom:2}}>BLENDED CAC</div>
-                        <div style={{fontFamily:disp,fontSize:16,fontWeight:800,color:"#16653a"}}>{blendedCac>0?`EGP ${Math.round(blendedCac)}`:`~EGP ${Math.round(estCac)}`}</div>
-                        <div style={{fontFamily:mono,fontSize:7.5,color:"#bbb"}}>{blendedCac>0?"from actuals":"estimated baseline"}</div>
-                      </div>
-                      <div style={{padding:"10px 12px",background:"#eff6ff",borderRadius:6,border:"1px solid #bfdbfe"}}>
-                        <div style={{fontFamily:mono,fontSize:7.5,color:"#999",marginBottom:2}}>LTV / CAC RATIO</div>
-                        <div style={{fontFamily:disp,fontSize:16,fontWeight:800,color:"#1e40af"}}>
-                          {estCac>0?((Number(p.avgCheckIftar)||340)*12*((Number(p.repeatRate)||45)/100)*2.5/estCac).toFixed(1):"—"}×
-                        </div>
-                        <div style={{fontFamily:mono,fontSize:7.5,color:"#bbb"}}>est 2.5yr LTV / CAC</div>
-                      </div>
-                    </div>
-                  </div>
-                  <div>
-                    <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1,marginBottom:8}}>CONVERSION VS BENCHMARK</div>
-                    {[
-                      {s:"Impression → Visit",a:(visits/imp*100).toFixed(2),b:4.0},
-                      {s:"Visit → Menu View",a:(menuViews/visits*100).toFixed(1),b:40},
-                      {s:"Menu → Order",a:(orders/menuViews*100).toFixed(1),b:20},
-                      {s:"Order → Repeat",a:(repeats/orders*100).toFixed(1),b:30},
-                    ].map((r,i)=>{
-                      const a=parseFloat(r.a),ok=a>=r.b,c=ok?"#16653a":"#dc2626",mx=Math.max(a,r.b)*1.3||1;
-                      return(
-                        <div key={i} style={{marginBottom:10}}>
-                          <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-                            <span style={{fontFamily:sans,fontSize:9,color:"#666"}}>{r.s}</span>
-                            <span style={{fontFamily:mono,fontSize:9,color:c,fontWeight:700}}>{r.a}% {ok?"↑":"↓"}</span>
-                          </div>
-                          <div style={{position:"relative",height:8,background:"#f0ede8",borderRadius:3}}>
-                            <div style={{position:"absolute",top:0,height:"100%",width:`${Math.min(r.b/mx*100,100)}%`,background:"#e0ddd8",borderRadius:3}}/>
-                            <div style={{position:"absolute",top:1,height:6,width:`${Math.min(a/mx*100,100)}%`,background:c,borderRadius:2,transition:"width 0.3s"}}/>
-                          </div>
-                          <div style={{fontFamily:mono,fontSize:7,color:"#ccc",marginTop:1}}>benchmark {r.b}%</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-
-              {/* ═══ REVENUE PROJECTION — B2C + B2B ═══ */}
-              <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
-                <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222",marginBottom:10}}>💰 Revenue Projection — B2C + B2B Combined</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:12}}>
-                  {[
-                    {l:"Iftar Revenue / Branch",v:`EGP ${iftarRev.toLocaleString()}`,c:"#be185d",s:`${p.iftarCoversPerNight} covers × ${nights} nights × EGP ${p.avgCheckIftar}`},
-                    {l:"Suhoor Revenue / Branch",v:`EGP ${suhoorRev.toLocaleString()}`,c:"#7c3aed",s:`${p.suhoorCoversPerNight} covers × ${nights} nights × EGP ${p.avgCheckSuhoor}`},
-                    {l:"Delivery Revenue / Branch",v:`EGP ${delivRev.toLocaleString()}`,c:"#16653a",s:`${p.deliveryOrdersPerMonth} orders × EGP ${p.avgCheckDelivery} net`},
-                    {l:"B2C Total / Branch",v:`EGP ${b2cRev.toLocaleString()}`,c:"#1e40af",s:"Iftar + Suhoor + Delivery",bold:true},
-                    {l:"B2B (Corporate) / Branch",v:b2b.active?`EGP ${b2bRevPerBranch.toLocaleString()}`:"OFF",c:"#d97706",s:b2b.active?`${b2bCovers} covers × EGP ${b2b.avgPackagePrice}`:"Enable B2B above"},
-                    {l:"Total Revenue / Branch",v:`EGP ${branchRev.toLocaleString()}`,c:"#be185d",s:"B2C + B2B",bold:true},
-                    {l:"Total Group Revenue (×8)",v:`EGP ${Math.round(groupRev).toLocaleString()}`,c:"#be185d",s:"all 8 branches — Ramadan month",bold:true},
-                    {l:"Total Marketing Spend (×8)",v:`EGP ${totalMktSpend.toLocaleString()}`,c:"#dc2626",s:"B2C channels + B2B outreach"},
-                    {l:"Revenue ROI on Mkt Spend",v:`${groupRevenueROI}×`,c:Number(groupRevenueROI)>=5?"#16653a":Number(groupRevenueROI)>=2?"#a16207":"#dc2626",s:"(group rev − spend) / spend",bold:true},
-                  ].map((s,i)=>(
-                    <div key={i} style={{background:s.bold?"#f5f3f0":"#fafaf8",borderRadius:7,padding:"9px 12px",borderLeft:`3px solid ${s.c}`}}>
-                      <div style={{fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:1,marginBottom:1}}>{s.l.toUpperCase()}</div>
-                      <div style={{fontFamily:disp,fontSize:s.bold?17:13,fontWeight:s.bold?800:600,color:s.c}}>{s.v}</div>
-                      <div style={{fontFamily:mono,fontSize:7.5,color:"#bbb"}}>{s.s}</div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* ── CAC SENSITIVITY TABLE ── */}
-                <div style={{background:"#f9f8f6",borderRadius:8,padding:"12px 14px",border:"1px solid #e5e1dc"}}>
-                  <div style={{fontFamily:disp,fontSize:12,fontWeight:700,color:"#222",marginBottom:2}}>📈 Variable Sales — Spend vs Orders vs Revenue</div>
-                  <div style={{fontFamily:mono,fontSize:8,color:"#999",marginBottom:10}}>How revenue changes if you increase or decrease marketing spend. Based on current CAC of EGP {Math.round(estCac)}.</div>
-                  <div style={{overflowX:"auto"}}>
-                    <table style={{width:"100%",borderCollapse:"collapse",fontFamily:sans,fontSize:11}}>
-                      <thead>
-                        <tr style={{background:"#f0ede8"}}>
-                          {["Scenario","Monthly Spend / Branch","Est. Orders / Branch","Est. Revenue / Branch","ROI","vs Current"].map((h,i)=>(
-                            <th key={i} style={{padding:"6px 10px",textAlign:"left",fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:1,borderBottom:"1px solid #e5e1dc",fontWeight:700,whiteSpace:"nowrap"}}>{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cacSensitivity.map((row,i)=>{
-                          const isCurrent=row.mult===1;
-                          const chRev=row.orders*(Number(p.avgCheckIftar)||340)+b2bRevPerBranch;
-                          const rowRoi=row.spend>0?((chRev-row.spend)/row.spend).toFixed(1):0;
-                          const pctVsCurrent=i>0?Math.round((chRev/cacSensitivity[2].revenue-1)*100):0;
-                          return(
-                            <tr key={i} style={{background:isCurrent?"#eff6ff":"#fff",borderBottom:"1px solid #f5f3f0",fontWeight:isCurrent?700:400}}>
-                              <td style={{padding:"7px 10px",fontFamily:mono,fontSize:9,color:isCurrent?"#1e40af":"#888"}}>
-                                {row.mult===0.5?"½× spend":row.mult===0.75?"¾× spend":row.mult===1?"→ CURRENT":row.mult===1.25?"1.25× spend":row.mult===1.5?"1.5× spend":"2× spend"}
-                              </td>
-                              <td style={{padding:"7px 10px",fontFamily:mono,fontSize:10,color:isCurrent?"#1e40af":"#555"}}>EGP {row.spend.toLocaleString()}</td>
-                              <td style={{padding:"7px 10px",fontFamily:mono,fontSize:10,color:isCurrent?"#1e40af":"#555"}}>{row.orders.toLocaleString()}</td>
-                              <td style={{padding:"7px 10px",fontFamily:mono,fontSize:10,fontWeight:700,color:isCurrent?"#1e40af":"#555"}}>EGP {chRev.toLocaleString()}</td>
-                              <td style={{padding:"7px 10px",fontFamily:mono,fontSize:10,color:Number(rowRoi)>=5?"#16653a":Number(rowRoi)>=2?"#a16207":"#dc2626",fontWeight:700}}>{rowRoi}×</td>
-                              <td style={{padding:"7px 10px",fontFamily:mono,fontSize:9,color:pctVsCurrent>0?"#16653a":pctVsCurrent<0?"#dc2626":"#888"}}>
-                                {isCurrent?"baseline":pctVsCurrent>0?`+${pctVsCurrent}%`:`${pctVsCurrent}%`}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              {/* ═══ ACTION PLAN ═══ */}
-              <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
-                <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222",marginBottom:10}}>📅 Ramadan Action Plan — B2C + B2B</div>
+            {/* ── HEADER ── */}
+            <div style={{background:"linear-gradient(135deg,#0d0d1a,#1a0a2e 50%,#2d1b4e)",borderRadius:12,padding:"20px 22px",marginBottom:12,position:"relative",overflow:"hidden"}}>
+              <div style={{position:"absolute",top:-10,right:10,fontSize:70,opacity:0.06}}>{"🌙"}</div>
+              <div style={{fontFamily:mono,fontSize:8,color:"rgba(212,175,55,0.6)",letterSpacing:3,marginBottom:4}}>RAMADAN 1446 · ABOU SHAKRA · 8 BRANCHES · B2C + B2B</div>
+              <div style={{fontFamily:disp,fontSize:22,fontWeight:800,color:"#f5e6a3",marginBottom:12}}>{"رمضان"} Marketing & Sales Plan</div>
+              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
                 {[
-                  {phase:"Pre-Ramadan — 2–3 Weeks Before",c:"#dc2626",ico:"🌙",items:[
-                    "GMB: update Ramadan hours, Iftar menu, Suhoor offering across all 8 branches",
-                    `Instagram/TikTok teasers: Iftar setups, chef prep — EGP ${Number(mktPlan.channels.social?.budget||14000).toLocaleString()} budget`,
-                    "WhatsApp blast: Ramadan Mubarak + Iftar offer to full CRM database",
-                    "Negotiate Talabat Ramadan placement + Iftar bundle pricing before Ramadan starts",
-                    `B2B: identify ${b2b.pipelineClients} target companies within 1km of each branch — HR / admin contacts`,
-                    "B2B: prepare corporate Iftar proposal deck — pricing, menu, capacity, booking flow",
-                  ]},
-                  {phase:"Week 1–2 — Launch & Test",c:"#a16207",ico:"⭐",items:[
-                    `Activate all ${Object.values(mktPlan.channels).filter(c=>c.active).length} B2C channels — monitor ROAS daily from Day 3`,
-                    "Google: 'Iftar near me', 'Ramadan buffet Cairo', 'Suhoor restaurants Cairo'",
-                    `Food influencers — EGP ${Number(mktPlan.channels.influencer?.budget||12000).toLocaleString()} — target 100K–1M food accounts`,
-                    `B2B outreach: call/WhatsApp ${b2b.pipelineClients} corporate targets — offer site visit or tasting`,
-                    `B2B target: close first ${Math.ceil(b2bClosedClients*0.5)} corporate bookings by end of W2`,
-                    "Daily flash: B2C covers/session + avg check + delivery orders + B2B confirmations",
-                  ]},
-                  {phase:"Week 3–4 — Optimise & Scale",c:"#16653a",ico:"✨",items:[
-                    "B2C: reallocate from channels under 3× ROAS → channels above 5×",
-                    "B2B: follow up pipeline — convert remaining prospects before Ramadan ends",
-                    `Last 10 nights (العشر الأواخر) — peak: increase social budget 30% and push Suhoor delivery`,
-                    `B2B repeat: WhatsApp all confirmed corporate clients — offer second booking at 10% loyalty discount`,
-                    "CRM retention: WhatsApp offer to W1–2 customers for return visit",
-                    "Review prompt after Iftar — target 50+ new Google reviews per branch",
-                  ]},
-                  {phase:"Post-Ramadan — Retain & Convert",c:"#7c3aed",ico:"🎉",items:[
-                    "Eid Mubarak offer to full Ramadan customer + corporate database → convert to Eid bookings",
-                    `B2B: send post-Ramadan performance report to each corporate client — set up annual Iftar retainer for 1447`,
-                    "Analyse: best channel/session/branch by ROAS — document for next year plan",
-                    "Post-Ramadan retention: special offer for first repeat visit within 30 days",
-                  ]},
-                ].map((ph,i)=>(
-                  <div key={i} style={{marginBottom:14,paddingLeft:12,borderLeft:`3px solid ${ph.c}`}}>
-                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:5}}>
-                      <span style={{fontSize:15}}>{ph.ico}</span>
-                      <div style={{fontFamily:disp,fontSize:12,fontWeight:700,color:ph.c}}>{ph.phase}</div>
-                    </div>
-                    {ph.items.map((item,j)=>(
-                      <div key={j} style={{fontFamily:sans,fontSize:10.5,color:"#555",padding:"2px 0",display:"flex",gap:6,lineHeight:1.5}}>
-                        <span style={{color:ph.c,fontWeight:700,flexShrink:0}}>→</span>{item}
-                      </div>
-                    ))}
+                  {l:"Total Campaign Budget",v:`EGP ${totalBudget.toLocaleString()}`,sub:`EGP ${totalBudget8.toLocaleString()} × 8 branches`,gold:true},
+                  {l:"B2C Blended CAC",v:blendedCAC>0?`EGP ${blendedCAC}`:"—",sub:`${totalB2COrders.toLocaleString()} orders from paid`},
+                  {l:"B2B Pipeline",v:`${pipeline} clients`,sub:`${b2bWonClients} expected to close (${closeRate}%)`},
+                  {l:"B2B Revenue / Branch",v:`EGP ${b2bRevenue.toLocaleString()}`,sub:`${b2bCovers.toLocaleString()} covers × EGP ${pkgPrice}`},
+                  {l:"Projected Group Revenue",v:`EGP ${Math.round(totalRev8/1000)}K`,sub:`B2C + B2B · 8 branches`},
+                  {l:"Overall Marketing ROI",v:`${overallROI}×`,sub:"(revenue − spend) / spend",hi:Number(overallROI)>=5},
+                ].map((s,i)=>(
+                  <div key={i} style={{background:s.gold?"rgba(212,175,55,0.15)":s.hi?"rgba(22,101,58,0.25)":"rgba(255,255,255,0.07)",border:s.gold?"1px solid rgba(212,175,55,0.3)":"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"10px 14px",minWidth:130}}>
+                    <div style={{fontFamily:mono,fontSize:7,color:s.gold?"rgba(212,175,55,0.7)":"rgba(255,255,255,0.4)",letterSpacing:1,marginBottom:3}}>{s.l.toUpperCase()}</div>
+                    <div style={{fontFamily:disp,fontSize:17,fontWeight:800,color:s.gold?"#f5e6a3":"#fff"}}>{s.v}</div>
+                    <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(255,255,255,0.3)",marginTop:2}}>{s.sub}</div>
                   </div>
                 ))}
               </div>
+            </div>
 
-              {/* ═══ NOTES ═══ */}
-              <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px"}}>
-                <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:8}}>📝 Notes</div>
-                <textarea value={mktPlan.notes} onChange={e=>setMktPlan(p=>({...p,notes:e.target.value}))}
-                  placeholder="Decisions, hypotheses, branch-specific Ramadan notes..."
-                  style={{width:"100%",minHeight:80,padding:"10px 12px",border:"1px solid #e5e1dc",borderRadius:6,fontFamily:sans,fontSize:11,color:"#444",resize:"vertical",boxSizing:"border-box",background:"#fafaf8"}}/>
+            {/* ── SECTION 1: BUDGET ALLOCATION ── */}
+            <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
+              <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222",marginBottom:2}}>💰 Total Budget Allocation</div>
+              <div style={{fontFamily:mono,fontSize:8.5,color:"#999",marginBottom:12}}>Set budget per channel — CAC, conversion rate, and ROAS calculate automatically from your actuals below</div>
+
+              {/* Budget bar */}
+              {(()=>{
+                const allChs=[...active,...(b2bActive?[["b2b_corp",{name:"B2B Corporate",budget:b2bBudget,color:"#d97706"}]]:[])]
+                const tot=allChs.reduce((s,[,c])=>s+(Number(c.budget)||0),0)||1;
+                const colors=[...active.map(([k])=>chColors[k]||"#888"),"#d97706"];
+                return(<div style={{marginBottom:12}}>
+                  <div style={{display:"flex",height:12,borderRadius:6,overflow:"hidden",marginBottom:6}}>
+                    {allChs.map(([k,c],i)=>(
+                      <div key={k} title={c.name} style={{width:`${(Number(c.budget)||0)/tot*100}%`,background:colors[i],transition:"width 0.3s"}}/>
+                    ))}
+                  </div>
+                  <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
+                    {allChs.map(([k,c],i)=>(
+                      <div key={k} style={{display:"flex",alignItems:"center",gap:4}}>
+                        <div style={{width:8,height:8,borderRadius:2,background:colors[i]}}/>
+                        <span style={{fontFamily:mono,fontSize:7.5,color:"#777"}}>{(c.name||"").split("—")[0].trim()} · {Math.round((Number(c.budget)||0)/tot*100)}% · EGP {Number(c.budget||0).toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>);
+              })()}
+
+              {/* Budget summary cards */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
+                {[
+                  {l:"B2C Digital & Organic",v:`EGP ${totalB2CBudget.toLocaleString()}`,sub:`${active.length} channels`,c:"#1e40af"},
+                  {l:"B2B Corporate Sales",v:`EGP ${b2bActive?b2bBudget.toLocaleString():"0"}`,sub:"outreach + events",c:"#d97706"},
+                  {l:"Total Per Branch",v:`EGP ${totalBudget.toLocaleString()}`,sub:`EGP ${totalBudget8.toLocaleString()} group total`,c:"#be185d",bold:true},
+                ].map((s,i)=>(
+                  <div key={i} style={{background:"#f9f8f6",borderRadius:8,padding:"12px",borderLeft:`3px solid ${s.c}`}}>
+                    <div style={{fontFamily:mono,fontSize:7.5,color:"#999",marginBottom:4}}>{s.l.toUpperCase()}</div>
+                    <div style={{fontFamily:disp,fontSize:18,fontWeight:800,color:s.c}}>{s.v}</div>
+                    <div style={{fontFamily:mono,fontSize:8,color:"#bbb"}}>{s.sub}</div>
+                  </div>
+                ))}
               </div>
+            </div>
 
-            </div>);
-          })()}
-        </div>}
+            {/* ── SECTION 2: B2C CHANNEL TABLE — wired CAC + conversion ── */}
+            <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
+              <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222",marginBottom:2}}>📡 B2C Channels — CAC, Conversion & Avg Spend</div>
+              <div style={{fontFamily:mono,fontSize:8.5,color:"#999",marginBottom:12}}>CAC = Budget ÷ Orders. CTR = Clicks ÷ Impressions. CVR = Orders ÷ Clicks. Avg Spend = Orders × Avg Check. ROAS = Avg Spend ÷ Budget.</div>
+              <div style={{overflowX:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontFamily:sans,fontSize:11}}>
+                  <thead>
+                    <tr style={{background:"#f5f3f0"}}>
+                      {["","Channel","Budget","Impressions","Clicks","CTR","Orders","CVR","CAC","Avg Spend Driven","ROAS","Signal"].map((h,i)=>(
+                        <th key={i} style={{padding:"6px 8px",textAlign:"left",fontFamily:mono,fontSize:7,color:"#999",letterSpacing:1,borderBottom:"2px solid #e5e1dc",fontWeight:700,whiteSpace:"nowrap"}}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {chMetrics.map((m,i)=>{
+                      const roasColor=m.roas>=5?"#16653a":m.roas>=3?"#a16207":m.roas>0?"#dc2626":"#999";
+                      const cacColor=m.cac&&m.cac<avgIftar*0.3?"#16653a":m.cac&&m.cac<avgIftar?"#a16207":m.cac?"#dc2626":"#bbb";
+                      return(
+                        <tr key={m.k} style={{borderBottom:"1px solid #f5f3f0",background:m.c.active?"#fff":"#fafaf8",opacity:m.c.active?1:0.5}}>
+                          <td style={{padding:"7px 8px"}}>
+                            <div style={{display:"flex",alignItems:"center",gap:5}}>
+                              <input type="checkbox" checked={m.c.active} onChange={e=>updMktCh(m.k,"active",e.target.checked)} style={{width:13,height:13,accentColor:m.color,cursor:"pointer"}}/>
+                              <div style={{width:3,height:20,borderRadius:1,background:m.c.active?m.color:"#ddd"}}/>
+                            </div>
+                          </td>
+                          <td style={{padding:"7px 8px",fontWeight:600,color:"#222",whiteSpace:"nowrap",maxWidth:160,overflow:"hidden",textOverflow:"ellipsis"}}>{m.name}</td>
+                          <td style={{padding:"7px 8px"}}>
+                            <input type="number" value={m.c.budget} onChange={e=>updMktCh(m.k,"budget",Number(e.target.value))} disabled={!m.c.active}
+                              style={{width:75,padding:"3px 6px",border:`1px solid ${m.color}40`,borderRadius:4,fontFamily:mono,fontSize:10,fontWeight:700,color:m.color,background:m.c.active?"#fff":"#f9f9f9"}}/>
+                          </td>
+                          <td style={{padding:"7px 8px"}}>
+                            <input type="text" value={m.c.impressions} onChange={e=>updMktCh(m.k,"impressions",e.target.value)} placeholder="—" disabled={!m.c.active}
+                              style={{width:75,padding:"3px 6px",border:"1px solid #e5e1dc",borderRadius:4,fontFamily:mono,fontSize:10,background:m.c.active?"#fff":"#f9f9f9",color:"#333"}}/>
+                          </td>
+                          <td style={{padding:"7px 8px"}}>
+                            <input type="text" value={m.c.clicks} onChange={e=>updMktCh(m.k,"clicks",e.target.value)} placeholder="—" disabled={!m.c.active}
+                              style={{width:70,padding:"3px 6px",border:"1px solid #e5e1dc",borderRadius:4,fontFamily:mono,fontSize:10,background:m.c.active?"#fff":"#f9f9f9",color:"#333"}}/>
+                          </td>
+                          <td style={{padding:"7px 8px",fontFamily:mono,fontSize:10,color:m.ctr>5?"#16653a":m.ctr>2?"#a16207":m.imp>0?"#dc2626":"#bbb",fontWeight:m.imp>0?700:400}}>
+                            {m.imp>0?`${m.ctr.toFixed(1)}%`:"—"}
+                          </td>
+                          <td style={{padding:"7px 8px"}}>
+                            <input type="text" value={m.c.orders} onChange={e=>updMktCh(m.k,"orders",e.target.value)} placeholder="—" disabled={!m.c.active}
+                              style={{width:65,padding:"3px 6px",border:"1px solid #e5e1dc",borderRadius:4,fontFamily:mono,fontSize:10,background:m.c.active?"#fff":"#f9f9f9",color:"#333"}}/>
+                          </td>
+                          <td style={{padding:"7px 8px",fontFamily:mono,fontSize:10,color:m.cvr>20?"#16653a":m.cvr>10?"#a16207":m.clicks>0?"#dc2626":"#bbb",fontWeight:m.clicks>0?700:400}}>
+                            {m.clicks>0?`${m.cvr.toFixed(1)}%`:"—"}
+                          </td>
+                          <td style={{padding:"7px 8px",fontFamily:mono,fontSize:10,fontWeight:700,color:cacColor}}>
+                            {m.cac?`EGP ${m.cac}`:"—"}
+                          </td>
+                          <td style={{padding:"7px 8px",fontFamily:mono,fontSize:10,fontWeight:600,color:"#555"}}>
+                            {m.orders>0?`EGP ${(m.orders*avgIftar).toLocaleString()}`:"—"}
+                          </td>
+                          <td style={{padding:"7px 8px",fontFamily:mono,fontSize:10,fontWeight:700,color:roasColor}}>
+                            {m.roas?`${m.roas.toFixed(1)}×`:"—"}
+                          </td>
+                          <td style={{padding:"7px 8px"}}>
+                            {!m.c.active?<span style={{fontFamily:mono,fontSize:7,color:"#ccc"}}>OFF</span>
+                            :m.roas>=5?<span style={{fontFamily:mono,fontSize:7,color:"#16653a",background:"#f0fdf4",padding:"2px 5px",borderRadius:3,fontWeight:700}}>🚀 SCALE</span>
+                            :m.roas>=3?<span style={{fontFamily:mono,fontSize:7,color:"#a16207",background:"#fffbeb",padding:"2px 5px",borderRadius:3,fontWeight:700}}>✓ HOLD</span>
+                            :m.roas>0?<span style={{fontFamily:mono,fontSize:7,color:"#dc2626",background:"#fef2f2",padding:"2px 5px",borderRadius:3,fontWeight:700}}>⚠ REVIEW</span>
+                            :<span style={{fontFamily:mono,fontSize:7,color:"#bbb",padding:"2px 5px",borderRadius:3}}>NO DATA</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{background:"#f5f3f0",borderTop:"2px solid #e5e1dc"}}>
+                      <td colSpan={2} style={{padding:"7px 8px",fontFamily:mono,fontSize:8,fontWeight:700,color:"#555"}}>TOTALS — B2C ACTIVE</td>
+                      <td style={{padding:"7px 8px",fontFamily:mono,fontSize:10,fontWeight:800,color:"#be185d"}}>EGP {totalB2CBudget.toLocaleString()}</td>
+                      <td style={{padding:"7px 8px",fontFamily:mono,fontSize:10,fontWeight:700,color:"#1e40af"}}>{totalImp.toLocaleString()}</td>
+                      <td style={{padding:"7px 8px",fontFamily:mono,fontSize:10,fontWeight:700,color:"#a16207"}}>{totalClicks.toLocaleString()}</td>
+                      <td style={{padding:"7px 8px",fontFamily:mono,fontSize:10,fontWeight:700,color:"#555"}}>{totalImp>0?`${(totalClicks/totalImp*100).toFixed(1)}%`:"—"}</td>
+                      <td style={{padding:"7px 8px",fontFamily:mono,fontSize:10,fontWeight:700,color:"#16653a"}}>{totalB2COrders.toLocaleString()}</td>
+                      <td style={{padding:"7px 8px",fontFamily:mono,fontSize:10,fontWeight:700,color:"#555"}}>{totalClicks>0?`${(totalB2COrders/totalClicks*100).toFixed(1)}%`:"—"}</td>
+                      <td style={{padding:"7px 8px",fontFamily:mono,fontSize:10,fontWeight:800,color:blendedCAC<avgIftar*0.3?"#16653a":"#dc2626"}}>{blendedCAC>0?`EGP ${blendedCAC}`:"—"}</td>
+                      <td style={{padding:"7px 8px",fontFamily:mono,fontSize:10,fontWeight:700,color:"#555"}}>EGP {(totalB2COrders*avgIftar).toLocaleString()}</td>
+                      <td colSpan={2} style={{padding:"7px 8px",fontFamily:mono,fontSize:10,fontWeight:800,color:"#16653a"}}>{totalB2CBudget>0?`${((totalB2COrders*avgIftar)/totalB2CBudget).toFixed(1)}× ROAS`:"—"}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
 
-        {view==="reqs"&&<div>
+            {/* ── SECTION 3: B2B CORPORATE IFTAR ── */}
+            <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                <div>
+                  <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222"}}>🏢 B2B Corporate Iftar Sales Pipeline</div>
+                  <div style={{fontFamily:mono,fontSize:8.5,color:"#999",marginTop:2}}>Corporate Iftar packages — bulk bookings, branded setups, fixed per-person pricing</div>
+                </div>
+                <label style={{display:"flex",alignItems:"center",gap:6,cursor:"pointer"}}>
+                  <input type="checkbox" checked={b2bActive} onChange={e=>updMktB2B("active",e.target.checked)} style={{width:14,height:14,accentColor:"#d97706"}}/>
+                  <span style={{fontFamily:mono,fontSize:8,color:b2bActive?"#d97706":"#bbb",fontWeight:700}}>{b2bActive?"B2B ACTIVE":"B2B OFF"}</span>
+                </label>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:10,marginBottom:14,opacity:b2bActive?1:0.4}}>
+                {[
+                  {l:"Clients in Pipeline",f:"pipelineClients",v:B.pipelineClients,icon:"🏢",c:"#d97706",desc:"Companies being pitched"},
+                  {l:"Expected Close Rate (%)",f:"closeRate",v:B.closeRate,icon:"🤝",c:"#1e40af",desc:"Industry avg 30–50%"},
+                  {l:"Avg Group Size (covers)",f:"avgGroupSize",v:B.avgGroupSize,icon:"🪑",c:"#16653a",desc:"Per corporate booking"},
+                  {l:"Package Price (EGP/person)",f:"avgPackagePrice",v:B.avgPackagePrice,icon:"💵",c:"#be185d",desc:"Fixed Iftar package rate"},
+                  {l:"Bookings Per Client",f:"bookingsPerClient",v:B.bookingsPerClient,icon:"📅",c:"#7c3aed",desc:"Avg repeat over Ramadan"},
+                  {l:"B2B Sales Budget (EGP)",f:"salesBudget",v:B.salesBudget,icon:"📢",c:"#dc2626",desc:"Outreach + hosting cost"},
+                ].map(({l,f,v,icon,c,desc})=>(
+                  <div key={f} style={{background:"#f9f8f6",borderRadius:8,padding:"11px",borderLeft:`3px solid ${c}`}}>
+                    <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:5}}>
+                      <span style={{fontSize:14}}>{icon}</span>
+                      <div style={{fontFamily:mono,fontSize:7,color:"#999",letterSpacing:1,lineHeight:1.3}}>{l.toUpperCase()}</div>
+                    </div>
+                    <input type="number" value={v} onChange={e=>updMktB2B(f,Number(e.target.value))} disabled={!b2bActive}
+                      style={{width:"100%",padding:"4px 7px",border:`1px solid ${c}40`,borderRadius:4,fontFamily:mono,fontSize:14,fontWeight:700,color:c,boxSizing:"border-box",marginBottom:3,background:b2bActive?"#fff":"#f5f5f5"}}/>
+                    <div style={{fontFamily:sans,fontSize:8,color:"#bbb"}}>{desc}</div>
+                  </div>
+                ))}
+              </div>
+              {/* B2B output */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,background:"#fffbeb",borderRadius:8,padding:"12px",border:"1px solid #fde68a",opacity:b2bActive?1:0.4}}>
+                {[
+                  {l:"Clients Won",v:b2bWonClients,sub:`${closeRate}% of ${pipeline}`,c:"#d97706"},
+                  {l:"Total B2B Covers",v:b2bCovers.toLocaleString(),sub:`${b2bWonClients}×${groupSize}×${bookings} bookings`,c:"#16653a"},
+                  {l:"B2B Revenue / Branch",v:`EGP ${b2bRevenue.toLocaleString()}`,sub:`${b2bCovers} covers × EGP ${pkgPrice}`,c:"#be185d",bold:true},
+                  {l:"B2B CAC / Client Won",v:b2bCAC>0?`EGP ${b2bCAC}`:"—",sub:`EGP ${b2bCoverCAC}/cover`,c:"#1e40af"},
+                ].map((s,i)=>(
+                  <div key={i} style={{background:"#fff",borderRadius:6,padding:"10px 12px",border:"1px solid #fde68a"}}>
+                    <div style={{fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:1,marginBottom:3}}>{s.l.toUpperCase()}</div>
+                    <div style={{fontFamily:disp,fontSize:s.bold?18:16,fontWeight:800,color:s.c}}>{s.v}</div>
+                    <div style={{fontFamily:mono,fontSize:7.5,color:"#bbb",marginTop:2}}>{s.sub}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── SECTION 4: PRICING & AVG SPEND ── */}
+            <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
+              <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222",marginBottom:2}}>🧾 Avg Cover & Spend Per Customer — By Session</div>
+              <div style={{fontFamily:mono,fontSize:8.5,color:"#999",marginBottom:12}}>These drive all revenue calculations. Ramadan avg checks are typically 20–40% above baseline.</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(170px,1fr))",gap:10,marginBottom:14}}>
+                {[
+                  {l:"Iftar Avg Check (EGP)",f:"avgCheckIftar",v:P.avgCheckIftar,icon:"🌙",c:"#7c3aed",desc:"Per cover, 7–10pm session"},
+                  {l:"Suhoor Avg Check (EGP)",f:"avgCheckSuhoor",v:P.avgCheckSuhoor,icon:"⭐",c:"#1e40af",desc:"Per cover, 1–3am session"},
+                  {l:"Delivery Net / Order (EGP)",f:"avgCheckDelivery",v:P.avgCheckDelivery,icon:"🛵",c:"#16653a",desc:"After Talabat/Noon commission"},
+                  {l:"Iftar Covers / Night",f:"iftarCoversPerNight",v:P.iftarCoversPerNight,icon:"🪑",c:"#be185d",desc:"Per branch"},
+                  {l:"Suhoor Covers / Night",f:"suhoorCoversPerNight",v:P.suhoorCoversPerNight,icon:"🪑",c:"#a16207",desc:"Per branch"},
+                  {l:"Delivery Orders / Month",f:"deliveryOrdersPerMonth",v:P.deliveryOrdersPerMonth,icon:"📦",c:"#0f766e",desc:"Per branch"},
+                  {l:"Ramadan Nights",f:"ramadanNights",v:P.ramadanNights,icon:"📅",c:"#6b7280",desc:"Campaign duration"},
+                  {l:"Repeat Rate Target (%)",f:"repeatRate",v:P.repeatRate,icon:"🔄",c:"#dc2626",desc:"Customers with 2+ visits"},
+                ].map(({l,f,v,icon,c,desc})=>(
+                  <div key={f} style={{background:"#f9f8f6",borderRadius:8,padding:"11px",borderLeft:`3px solid ${c}`}}>
+                    <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:5}}>
+                      <span style={{fontSize:14}}>{icon}</span>
+                      <div style={{fontFamily:mono,fontSize:7,color:"#999",letterSpacing:1,lineHeight:1.3}}>{l.toUpperCase()}</div>
+                    </div>
+                    <input type="number" value={v} onChange={e=>updMktPricing(f,Number(e.target.value))}
+                      style={{width:"100%",padding:"4px 7px",border:`1px solid ${c}40`,borderRadius:4,fontFamily:mono,fontSize:14,fontWeight:700,color:c,boxSizing:"border-box",marginBottom:3}}/>
+                    <div style={{fontFamily:sans,fontSize:8,color:"#bbb"}}>{desc}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Session revenue breakdown */}
+              <div style={{background:"#f0fdf4",borderRadius:8,padding:"12px 16px",border:"1px solid #bbf7d0"}}>
+                <div style={{fontFamily:mono,fontSize:8,color:"#16653a",letterSpacing:1,marginBottom:8}}>REVENUE PER BRANCH — RAMADAN MONTH</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:8}}>
+                  {[
+                    {l:"Iftar Total",v:`EGP ${(iftarCov*nights*avgIftar).toLocaleString()}`,sub:`${iftarCov}×${nights}×EGP${avgIftar}`,c:"#7c3aed"},
+                    {l:"Suhoor Total",v:`EGP ${(suhoorCov*nights*avgSuhoor).toLocaleString()}`,sub:`${suhoorCov}×${nights}×EGP${avgSuhoor}`,c:"#1e40af"},
+                    {l:"Delivery Total",v:`EGP ${(delOrd*avgDel).toLocaleString()}`,sub:`${delOrd}×EGP${avgDel}`,c:"#16653a"},
+                    {l:"B2C Total / Branch",v:`EGP ${Math.round(b2cRevPerBranch).toLocaleString()}`,sub:"all B2C sessions",c:"#be185d",bold:true},
+                    {l:"B2B Add-on / Branch",v:b2bActive?`EGP ${b2bRevenue.toLocaleString()}`:"OFF",sub:`${b2bCovers} corporate covers`,c:"#d97706"},
+                    {l:"Grand Total / Branch",v:`EGP ${Math.round(b2cRevPerBranch+(b2bActive?b2bRevenue:0)).toLocaleString()}`,sub:`EGP ${Math.round(totalRev8/1000)}K × 8 branches`,c:"#be185d",bold:true},
+                  ].map((s,i)=>(
+                    <div key={i} style={{background:"#fff",borderRadius:6,padding:"10px 12px",border:"1px solid #bbf7d0"}}>
+                      <div style={{fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:1,marginBottom:2}}>{s.l.toUpperCase()}</div>
+                      <div style={{fontFamily:disp,fontSize:s.bold?16:14,fontWeight:800,color:s.c}}>{s.v}</div>
+                      <div style={{fontFamily:mono,fontSize:7.5,color:"#bbb",marginTop:2}}>{s.sub}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* ── SECTION 5: LIVE FUNNEL ── */}
+            <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
+              <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222",marginBottom:2}}>📊 Live Funnel — Wired from Channel Actuals</div>
+              <div style={{fontFamily:mono,fontSize:8.5,color:"#999",marginBottom:12}}>Aggregated from all active B2C channels above. Update impressions, clicks, and orders per channel to see funnel update.</div>
+              <div style={{display:"grid",gridTemplateColumns:"3fr 2fr",gap:12}}>
+                <div>
+                  {fStages.map((s,i)=>{
+                    const prev=i>0?fStages[i-1]:null;
+                    const convRate=prev&&prev.val>0?(s.val/prev.val*100).toFixed(1):null;
+                    const barW=Math.max((s.val/topFVal)*100,1);
+                    return(
+                      <div key={i} style={{marginBottom:10}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                          <div style={{display:"flex",alignItems:"center",gap:5}}>
+                            <span style={{fontSize:13}}>{s.icon}</span>
+                            <span style={{fontFamily:sans,fontSize:10,color:"#555"}}>{s.label}</span>
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:8}}>
+                            {convRate&&<span style={{fontFamily:mono,fontSize:8,color:s.color,background:s.color+"15",padding:"1px 5px",borderRadius:3,fontWeight:700}}>{convRate}% from prev</span>}
+                            <span style={{fontFamily:mono,fontSize:12,fontWeight:800,color:s.val>0?s.color:"#ccc"}}>{s.val>0?s.val.toLocaleString():"—"}</span>
+                          </div>
+                        </div>
+                        <div style={{height:16,background:"#f0ede8",borderRadius:4,overflow:"hidden"}}>
+                          <div style={{height:"100%",width:`${barW}%`,background:s.val>0?s.color:"#e0ddd8",borderRadius:4,transition:"width 0.4s"}}/>
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div style={{marginTop:10,padding:"10px 12px",background:"#f9f8f6",borderRadius:6,display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8}}>
+                    {[
+                      {l:"Blended CAC",v:blendedCAC>0?`EGP ${blendedCAC}`:"—",c:blendedCAC>0&&blendedCAC<avgIftar*0.3?"#16653a":"#dc2626"},
+                      {l:"Overall CTR",v:totalImp>0?`${(totalClicks/totalImp*100).toFixed(2)}%`:"—",c:"#1e40af"},
+                      {l:"Overall CVR",v:totalClicks>0?`${(totalB2COrders/totalClicks*100).toFixed(1)}%`:"—",c:"#7c3aed"},
+                    ].map((s,i)=>(
+                      <div key={i} style={{textAlign:"center"}}>
+                        <div style={{fontFamily:mono,fontSize:7,color:"#bbb",marginBottom:2}}>{s.l}</div>
+                        <div style={{fontFamily:disp,fontSize:15,fontWeight:800,color:s.c}}>{s.v}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {/* Conversion benchmarks */}
+                <div>
+                  <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1,marginBottom:8}}>CONVERSION RATES VS F&B BENCHMARK</div>
+                  {[
+                    {stage:"CTR (Imp → Click)",actual:totalImp>0?(totalClicks/totalImp*100):0,bench:4.0,fmt:v=>`${v.toFixed(2)}%`},
+                    {stage:"CVR (Click → Order)",actual:totalClicks>0?(totalB2COrders/totalClicks*100):0,bench:20,fmt:v=>`${v.toFixed(1)}%`},
+                    {stage:"Repeat Rate",actual:repRate,bench:30,fmt:v=>`${v}%`},
+                  ].map((f,i)=>{
+                    const isAbove=f.actual>=f.bench;
+                    const c=isAbove?"#16653a":"#dc2626";
+                    const max=Math.max(f.actual,f.bench)*1.3||1;
+                    return(
+                      <div key={i} style={{marginBottom:12}}>
+                        <div style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+                          <span style={{fontFamily:sans,fontSize:10,color:"#555"}}>{f.stage}</span>
+                          <span style={{fontFamily:mono,fontSize:9,color:c,fontWeight:700}}>{f.fmt(f.actual)} {isAbove?"↑":"↓"}</span>
+                        </div>
+                        <div style={{position:"relative",height:8,background:"#f0ede8",borderRadius:3}}>
+                          <div style={{position:"absolute",top:0,left:0,height:"100%",width:`${Math.min(f.bench/max*100,100)}%`,background:"#e0ddd8",borderRadius:3}}/>
+                          <div style={{position:"absolute",top:1,left:0,height:6,width:`${Math.min(f.actual/max*100,100)}%`,background:c,borderRadius:2,transition:"width 0.3s"}}/>
+                        </div>
+                        <div style={{fontFamily:mono,fontSize:7.5,color:"#ccc",marginTop:2}}>benchmark: {f.fmt(f.bench)}</div>
+                      </div>
+                    );
+                  })}
+                  {/* CAC comparison */}
+                  <div style={{marginTop:14,background:"#f9f8f6",borderRadius:8,padding:"10px 12px"}}>
+                    <div style={{fontFamily:mono,fontSize:7.5,color:"#999",marginBottom:6}}>CAC BY CHANNEL</div>
+                    {chMetrics.filter(m=>m.cac).sort((a,b)=>a.cac-b.cac).map((m,i)=>{
+                      const maxCAC=Math.max(...chMetrics.filter(x=>x.cac).map(x=>x.cac),1);
+                      return(
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
+                          <div style={{width:80,fontFamily:sans,fontSize:8.5,color:"#555",flexShrink:0,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.name}</div>
+                          <div style={{flex:1,height:10,background:"#eee",borderRadius:3,overflow:"hidden"}}>
+                            <div style={{height:"100%",width:`${(m.cac/maxCAC)*100}%`,background:m.cac<avgIftar*0.3?m.color:"#dc2626",borderRadius:3}}/>
+                          </div>
+                          <div style={{fontFamily:mono,fontSize:8.5,color:m.cac<avgIftar*0.3?"#16653a":"#dc2626",fontWeight:700,width:55,textAlign:"right"}}>EGP {m.cac}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── SECTION 6: INSIGHTS ── */}
+            <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
+              <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222",marginBottom:10}}>🧠 Strategic Insights — From Your Numbers</div>
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:8}}>
+                {[
+                  {icon:"💡",c:"#1e40af",title:"CAC Health",
+                    text:blendedCAC>0?`Blended B2C CAC is EGP ${blendedCAC} vs avg check EGP ${avgIftar}. CAC/Revenue ratio: ${(blendedCAC/avgIftar*100).toFixed(0)}%. ${blendedCAC<avgIftar*0.3?"Healthy — you're acquiring customers at <30% of avg check.":blendedCAC<avgIftar?"Borderline — optimise before scaling paid spend.":"⚠ CAC exceeds 100% of avg check — paid channels losing money."}`:"Enter orders and budget per channel to calculate CAC."},
+                  {icon:"🏢",c:"#d97706",title:"B2B Opportunity",
+                    text:b2bActive?`${b2bWonClients} corporate clients × ${groupSize} covers × ${bookings} bookings = ${b2bCovers.toLocaleString()} guaranteed covers at EGP ${pkgPrice}/person. B2B CAC of EGP ${b2bCAC}/client won is ${b2bCAC<pkgPrice*groupSize*0.1?"excellent — <10% of contract value":"high — renegotiate package pricing or reduce outreach cost"}. B2B adds EGP ${b2bRevenue.toLocaleString()} predictable revenue per branch.`:"Enable B2B toggle to see corporate Iftar pipeline analysis."},
+                  {icon:"📡",c:"#16653a",title:"Best Channel",
+                    text:(()=>{
+                      const best=chMetrics.filter(m=>m.roas).sort((a,b)=>b.roas-a.roas)[0];
+                      const worst=chMetrics.filter(m=>m.roas).sort((a,b)=>a.roas-b.roas)[0];
+                      if(!best) return "Enter orders per channel to identify your best performer.";
+                      return `${best.name} has highest ROAS at ${best.roas.toFixed(1)}× — EGP ${best.budget.toLocaleString()} budget driving EGP ${(best.orders*avgIftar).toLocaleString()} revenue.${worst&&worst.k!==best.k&&worst.roas<2?` ${worst.name} at ${worst.roas.toFixed(1)}× is underperforming — consider pausing and reallocating EGP ${worst.budget.toLocaleString()} to ${best.name}.`:""}`;
+                    })()},
+                  {icon:"🔄",c:"#be185d",title:"Repeat Revenue",
+                    text:`At ${repRate}% repeat rate, ${Math.round(totalB2COrders*(repRate/100)).toLocaleString()} customers return this Ramadan. Each 5% improvement = ${Math.round(totalB2COrders*0.05).toLocaleString()} extra orders × EGP ${avgIftar} = EGP ${Math.round(totalB2COrders*0.05*avgIftar*8).toLocaleString()} group revenue at EGP 0 CAC. WhatsApp CRM is your highest-leverage channel for repeat.`},
+                  {icon:"🎯",c:"#7c3aed",title:"CVR Gap",
+                    text:totalClicks>0?`Current CVR: ${(totalB2COrders/totalClicks*100).toFixed(1)}% vs 20% benchmark. ${(totalB2COrders/totalClicks*100)>=20?"Above benchmark — funnel is converting well.":
+                    `If you hit 20% CVR on ${totalClicks.toLocaleString()} clicks, you'd get ${Math.round(totalClicks*0.2).toLocaleString()} orders vs current ${totalB2COrders.toLocaleString()} — ${Math.round(totalClicks*0.2-totalB2COrders).toLocaleString()} additional orders worth EGP ${Math.round((totalClicks*0.2-totalB2COrders)*avgIftar).toLocaleString()}.`}`:"Enter clicks per channel to see CVR gap analysis."},
+                  {icon:"💰",c:"#dc2626",title:"ROI Summary",
+                    text:`Total spend: EGP ${totalBudget.toLocaleString()}/branch × 8 = EGP ${totalBudget8.toLocaleString()}. Total projected revenue: EGP ${Math.round(totalRev8/1000)}K. Marketing ROI: ${overallROI}×. ${Number(overallROI)>=10?"Excellent — Ramadan is delivering strong returns.":Number(overallROI)>=5?"Good — on track for a strong Ramadan.":Number(overallROI)>=2?"Acceptable — look for channels to optimise.":"⚠ Review spend allocation — ROI needs improvement."}`},
+                ].map((ins,i)=>(
+                  <div key={i} style={{background:"#f9f8f6",borderRadius:8,padding:"12px 14px",borderLeft:`3px solid ${ins.c}`}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:5}}>
+                      <span style={{fontSize:15}}>{ins.icon}</span>
+                      <div style={{fontFamily:disp,fontSize:11,fontWeight:700,color:ins.c}}>{ins.title}</div>
+                    </div>
+                    <div style={{fontFamily:sans,fontSize:10,color:"#555",lineHeight:1.6}}>{ins.text}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── SECTION 7: NOTES ── */}
+            <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px"}}>
+              <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:8}}>📝 Planning Notes</div>
+              <textarea value={mktPlan.notes} onChange={e=>setMktPlan(p=>({...p,notes:e.target.value}))}
+                placeholder="B2B leads, channel decisions, pricing notes, branch-specific observations..."
+                style={{width:"100%",minHeight:80,padding:"10px 12px",border:"1px solid #e5e1dc",borderRadius:6,fontFamily:sans,fontSize:11,color:"#444",resize:"vertical",boxSizing:"border-box",background:"#fafaf8"}}/>
+            </div>
+
+          </div>
+          );
+        })()}
+
+        view==="reqs"&&<div>
           <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1.5,marginBottom:8}}>CLIENT-SIDE REQUIREMENTS</div>
           {requirements.map((r,i)=>(
             <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 110px 65px 50px",gap:5,alignItems:"center",padding:"7px 10px",background:"#fff",border:"1px solid #e5e1dc",borderRadius:5,borderLeft:r.critical?"3px solid #dc2626":"3px solid #ddd",marginBottom:2}}>
