@@ -247,9 +247,280 @@ function exportToExcel(tasks, opsMonthly, dealMonthly, budgetData, comments) {
   XLSX.writeFile(wb, "C2_Abou_Shakra_Dashboard.xlsx");
 }
 
-// ═══ BUDGET INITIAL DATA ═══
-function mkBudgetRow(branch, month) {
-  return { id:`${branch}-${month}`, branch, month, revF:"", revA:"", fcF:"", fcA:"", labF:"", labA:"", ebitdaF:"", ebitdaA:"" };
+
+function BudgetView({budgetData,setBudgetData,budgetBranch,setBudgetBranch,budgetMonth,setBudgetMonth,HIST_BRANCHES,BRANCHES,MONTHS_LIST}){
+  const {useState}=React;
+  const sans="DM Sans,sans-serif", mono="DM Mono,monospace", disp="DM Sans,sans-serif";
+  const MA=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+  const brSummary=HIST_BRANCHES.map(b=>{
+    const rows=budgetData.filter(r=>r.branch===b&&r.isHistorical);
+    return{b,
+      annual2025:rows.reduce((s,r)=>s+(r.sales2025||0),0),
+      annual2026:rows.reduce((s,r)=>s+(r.fcast2026||0),0),
+      ram2025:rows[2]?.sales2025||0,
+      ram2026:rows[2]?.fcast2026||0,
+      months:rows,
+    };
+  });
+  const g25=brSummary.reduce((s,b)=>s+b.annual2025,0);
+  const g26=brSummary.reduce((s,b)=>s+b.annual2026,0);
+  const gr25=brSummary.reduce((s,b)=>s+b.ram2025,0);
+  const gr26=brSummary.reduce((s,b)=>s+b.ram2026,0);
+  const jan26actual=9533841, jan26budget=10222780;
+  const jan26var=jan26actual-jan26budget;
+
+  const [selB,setSelB]=useState(HIST_BRANCHES[0]);
+  const selRows=budgetData.filter(r=>r.branch===selB&&r.isHistorical);
+  const manualRows=budgetData.filter(r=>!r.isHistorical);
+
+  const vc=(v,inv=false)=>{
+    const good=inv?v<0:v>0;
+    return <td style={{padding:"5px 8px",fontFamily:mono,fontSize:10,textAlign:"right",color:v===0?"#888":good?"#16653a":"#dc2626",fontWeight:600}}>{v>0?"+":""}{v.toLocaleString()}</td>;
+  };
+  const ei=(row,f)=><input type="number" value={row[f]||""} onChange={e=>setBudgetData(p=>p.map(r=>r.id===row.id?{...r,[f]:e.target.value}:r))}
+    style={{width:82,padding:"3px 6px",border:"1px solid #e5e1dc",borderRadius:3,fontFamily:mono,fontSize:10,textAlign:"right"}}/>;
+
+  return(<div>
+
+    {/* HEADER */}
+    <div style={{background:"linear-gradient(135deg,#111827,#1e293b)",borderRadius:10,padding:"18px 22px",marginBottom:12}}>
+      <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(212,175,55,0.55)",letterSpacing:3,marginBottom:4}}>SALES HISTORICALS · 4 BRANCHES · JAN–DEC 2025 → 2026 FORECAST +25%</div>
+      <div style={{fontFamily:disp,fontSize:20,fontWeight:800,color:"#fff",marginBottom:14}}>📊 Actual vs Budget — Branch Revenue Forecast</div>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {[
+          {l:"2025 Total Revenue",    v:`EGP ${(g25/1e6).toFixed(1)}M`,  sub:"4 branches · uploaded file",  c:"#D4863A"},
+          {l:"2026 Forecast (+25%)",  v:`EGP ${(g26/1e6).toFixed(1)}M`,  sub:"same month × 1.25 uplift",    c:"#4ade80"},
+          {l:"Ramadan 2025 (March)",  v:`EGP ${(gr25/1e6).toFixed(2)}M`, sub:"4-branch March spike",         c:"#f5e6a3"},
+          {l:"Ramadan 2026 Forecast", v:`EGP ${(gr26/1e6).toFixed(2)}M`, sub:"+25% on March 2025 actuals",   c:"#f5e6a3"},
+          {l:"Jan 2026 Actual",       v:`EGP ${jan26actual.toLocaleString()}`,sub:`${((jan26var/jan26budget)*100).toFixed(1)}% vs budget`,c:"#f87171"},
+        ].map((s,i)=>(
+          <div key={i} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"10px 16px",minWidth:148,flex:1}}>
+            <div style={{fontFamily:mono,fontSize:7,color:"rgba(255,255,255,0.35)",letterSpacing:1,marginBottom:3}}>{s.l.toUpperCase()}</div>
+            <div style={{fontFamily:disp,fontSize:17,fontWeight:800,color:s.c}}>{s.v}</div>
+            <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(255,255,255,0.28)"}}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* BRANCH CARDS */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12}}>
+      {brSummary.map((bt,i)=>(
+        <div key={i} onClick={()=>setSelB(bt.b)} style={{background:"#fff",border:`1px solid ${selB===bt.b?"#1e293b":"#e5e1dc"}`,borderRadius:10,padding:"14px 16px",cursor:"pointer",outline:selB===bt.b?"2px solid #1e293b":"none"}}>
+          <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:8}}>{bt.b}</div>
+          <div style={{marginBottom:5}}>
+            <div style={{fontFamily:mono,fontSize:7.5,color:"#aaa",marginBottom:1}}>2025 ACTUAL</div>
+            <div style={{fontFamily:disp,fontSize:14,fontWeight:800,color:"#444"}}>EGP {(bt.annual2025/1e6).toFixed(2)}M</div>
+          </div>
+          <div style={{marginBottom:8}}>
+            <div style={{fontFamily:mono,fontSize:7.5,color:"#16653a",marginBottom:1}}>2026 FORECAST (+25%)</div>
+            <div style={{fontFamily:disp,fontSize:14,fontWeight:800,color:"#16653a"}}>EGP {(bt.annual2026/1e6).toFixed(2)}M</div>
+            <div style={{fontFamily:mono,fontSize:7.5,color:"#16653a"}}>+EGP {Math.round((bt.annual2026-bt.annual2025)/1000).toLocaleString()}K</div>
+          </div>
+          <div style={{borderTop:"1px solid #f0ede8",paddingTop:7}}>
+            <div style={{fontFamily:mono,fontSize:7,color:"#d97706",letterSpacing:1,marginBottom:2}}>🌙 RAMADAN (MARCH)</div>
+            <div style={{fontFamily:mono,fontSize:8,color:"#999"}}>2025: EGP {Math.round(bt.ram2025/1000).toLocaleString()}K</div>
+            <div style={{fontFamily:disp,fontSize:13,fontWeight:800,color:"#d97706"}}>2026: EGP {Math.round(bt.ram2026/1000).toLocaleString()}K</div>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    {/* MONTHLY TABLE */}
+    <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+        <div>
+          <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222"}}>Monthly Breakdown — {selB}</div>
+          <div style={{fontFamily:mono,fontSize:8.5,color:"#999",marginTop:2}}>2025 actuals from uploaded file · 2026 forecast = same month × 1.25 · avg check EGP 425</div>
+        </div>
+        <div style={{display:"flex",gap:4}}>
+          {HIST_BRANCHES.map(b=>(
+            <button key={b} onClick={()=>setSelB(b)} style={{padding:"4px 10px",borderRadius:5,border:"1px solid #e5e1dc",fontFamily:mono,fontSize:8.5,fontWeight:700,cursor:"pointer",background:selB===b?"#1e293b":"#f9f8f6",color:selB===b?"#fff":"#555"}}>
+              {b}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div style={{overflowX:"auto"}}>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
+          <thead>
+            <tr style={{background:"#f5f3f0"}}>
+              {["Month","2025 Actual","2026 Forecast +25%","Uplift EGP","Uplift %","Tag"].map((h,i)=>(
+                <th key={i} style={{padding:"7px 10px",fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:0.8,textAlign:i===0?"left":"right",borderBottom:"2px solid #e5e1dc",fontWeight:700,whiteSpace:"nowrap"}}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {selRows.map((row,i)=>{
+              const isRam=i===2;
+              const isJunConcord=i===5&&selB==="Concord";
+              const uplift=(row.fcast2026||0)-(row.sales2025||0);
+              return(
+                <tr key={i} style={{borderBottom:"1px solid #f5f3f0",background:isRam?"#fffbeb":isJunConcord?"#f0fdf4":"#fff"}}>
+                  <td style={{padding:"7px 10px",fontWeight:isRam||isJunConcord?700:400,color:isRam?"#d97706":isJunConcord?"#16653a":"#333",fontFamily:isRam||isJunConcord?disp:sans}}>
+                    {MA[i]} 2025
+                  </td>
+                  <td style={{padding:"7px 10px",fontFamily:mono,fontSize:11,textAlign:"right",color:"#555"}}>{(row.sales2025||0).toLocaleString()}</td>
+                  <td style={{padding:"7px 10px",fontFamily:mono,fontSize:11,textAlign:"right",fontWeight:700,color:"#16653a"}}>{(row.fcast2026||0).toLocaleString()}</td>
+                  <td style={{padding:"7px 10px",fontFamily:mono,fontSize:11,textAlign:"right",color:"#16653a"}}>+{uplift.toLocaleString()}</td>
+                  <td style={{padding:"7px 10px",fontFamily:mono,fontSize:11,textAlign:"right",fontWeight:700,color:"#16653a"}}>+25%</td>
+                  <td style={{padding:"7px 10px",textAlign:"right"}}>
+                    {isRam&&<span style={{fontFamily:mono,fontSize:8,padding:"2px 7px",borderRadius:3,background:"#fef3c7",color:"#d97706",fontWeight:700}}>🌙 Ramadan</span>}
+                    {isJunConcord&&<span style={{fontFamily:mono,fontSize:8,padding:"2px 7px",borderRadius:3,background:"#dcfce7",color:"#16653a",fontWeight:700}}>🎉 Eid spike</span>}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+          <tfoot>
+            <tr style={{background:"#f5f3f0",borderTop:"2px solid #e5e1dc"}}>
+              <td style={{padding:"8px 10px",fontFamily:mono,fontSize:8,fontWeight:700,color:"#555"}}>ANNUAL TOTAL</td>
+              <td style={{padding:"8px 10px",fontFamily:mono,fontSize:12,textAlign:"right",fontWeight:800,color:"#333"}}>{selRows.reduce((s,r)=>s+(r.sales2025||0),0).toLocaleString()}</td>
+              <td style={{padding:"8px 10px",fontFamily:mono,fontSize:12,textAlign:"right",fontWeight:800,color:"#16653a"}}>{selRows.reduce((s,r)=>s+(r.fcast2026||0),0).toLocaleString()}</td>
+              <td style={{padding:"8px 10px",fontFamily:mono,fontSize:12,textAlign:"right",fontWeight:700,color:"#16653a"}}>+{(selRows.reduce((s,r)=>s+(r.fcast2026||0),0)-selRows.reduce((s,r)=>s+(r.sales2025||0),0)).toLocaleString()}</td>
+              <td style={{padding:"8px 10px",fontFamily:mono,fontSize:12,textAlign:"right",fontWeight:700,color:"#16653a"}}>+25%</td>
+              <td/>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    </div>
+
+    {/* RAMADAN SECTION */}
+    <div style={{background:"linear-gradient(135deg,#0d0d1a,#1a0a2e,#2d1b4e)",borderRadius:10,padding:"18px 22px",marginBottom:12}}>
+      <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(212,175,55,0.5)",letterSpacing:3,marginBottom:4}}>RAMADAN 1446 · MARCH 2026 · 4-BRANCH REVENUE FORECAST</div>
+      <div style={{fontFamily:disp,fontSize:18,fontWeight:800,color:"#f5e6a3",marginBottom:14}}>🌙 Ramadan Month — Historical vs Forecast</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14}}>
+        {[
+          {b:"Maadi",    r25:5219962,r26:6524953,cn:512},
+          {b:"Kasr Ainy",r25:2825767,r26:3532209,cn:277},
+          {b:"Arab Mall",r25:1519114,r26:1898892,cn:149},
+          {b:"Concord",  r25:5527607,r26:6909509,cn:542},
+        ].map((br,i)=>(
+          <div key={i} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,padding:"12px 14px"}}>
+            <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(212,175,55,0.6)",letterSpacing:1.5,marginBottom:4}}>{br.b.toUpperCase()}</div>
+            <div style={{fontFamily:mono,fontSize:8,color:"rgba(255,255,255,0.4)",marginBottom:2}}>2025: EGP {(br.r25/1e3).toFixed(0)}K</div>
+            <div style={{fontFamily:disp,fontSize:19,fontWeight:800,color:"#f5e6a3"}}>EGP {(br.r26/1e3).toFixed(0)}K</div>
+            <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(255,255,255,0.35)",marginTop:4}}>~{br.cn} covers/night · EGP 425 avg</div>
+            <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(255,255,255,0.35)"}}>+EGP {((br.r26-br.r25)/1e3).toFixed(0)}K uplift</div>
+          </div>
+        ))}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
+        {[
+          {l:"Total Ramadan 2026",    v:`EGP ${(gr26/1e6).toFixed(2)}M`,                   sub:"all 4 branches · March",      c:"#f5e6a3"},
+          {l:"Growth vs 2025",        v:`+EGP ${((gr26-gr25)/1e3).toFixed(0)}K`,            sub:"+25% on March 2025 base",     c:"#4ade80"},
+          {l:"Avg Check Applied",     v:"EGP 425",                                           sub:"EGP 340 baseline +25% uplift",c:"#a78bfa"},
+        ].map((s,i)=>(
+          <div key={i} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"14px 16px"}}>
+            <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(255,255,255,0.35)",letterSpacing:1,marginBottom:4}}>{s.l.toUpperCase()}</div>
+            <div style={{fontFamily:disp,fontSize:22,fontWeight:800,color:s.c}}>{s.v}</div>
+            <div style={{fontFamily:mono,fontSize:8,color:"rgba(255,255,255,0.3)",marginTop:3}}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* JAN 2026 ACTUAL */}
+    <div style={{background:"#fff",border:"1px solid #fecaca",borderLeft:"4px solid #dc2626",borderRadius:10,padding:"16px 18px",marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
+        <div>
+          <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222"}}>🔴 January 2026 — Actual vs Budget</div>
+          <div style={{fontFamily:mono,fontSize:8.5,color:"#999",marginTop:2}}>From uploaded file · 4-branch combined · only month with actual data</div>
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{fontFamily:mono,fontSize:8,color:"#bbb",marginBottom:2}}>TOTAL VARIANCE</div>
+          <div style={{fontFamily:disp,fontSize:22,fontWeight:800,color:"#dc2626"}}>-EGP {Math.abs(jan26var).toLocaleString()}</div>
+          <div style={{fontFamily:mono,fontSize:9,color:"#dc2626"}}>{((jan26var/jan26budget)*100).toFixed(1)}% vs budget</div>
+        </div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
+        {[
+          {b:"Maadi",     budget:2921787,actual:2724880},
+          {b:"Kasr Ainy", budget:2750529,actual:2565164},
+          {b:"Arab Mall", budget:1137382,actual:1060731},
+          {b:"Concord",   budget:3413082,actual:3183066},
+        ].map((br,i)=>{
+          const v=br.actual-br.budget;
+          const pct=((v/br.budget)*100).toFixed(1);
+          return(
+            <div key={i} style={{background:"#fafaf8",borderRadius:8,padding:"10px 12px",border:"1px solid #e5e1dc"}}>
+              <div style={{fontFamily:mono,fontSize:8,color:"#666",marginBottom:6,fontWeight:700}}>{br.b}</div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,marginBottom:5}}>
+                <div><div style={{fontFamily:mono,fontSize:7,color:"#aaa"}}>BUDGET</div><div style={{fontFamily:mono,fontSize:10,fontWeight:700}}>{br.budget.toLocaleString()}</div></div>
+                <div><div style={{fontFamily:mono,fontSize:7,color:"#aaa"}}>ACTUAL</div><div style={{fontFamily:mono,fontSize:10,fontWeight:700}}>{br.actual.toLocaleString()}</div></div>
+              </div>
+              <div style={{fontFamily:mono,fontSize:10,color:v>=0?"#16653a":"#dc2626",fontWeight:700}}>{v>=0?"+":""}{v.toLocaleString()} ({pct}%)</div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+
+    {/* MANUAL ENTRY */}
+    <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px"}}>
+      <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222",marginBottom:2}}>✏️ Add 2026 Actual vs Budget</div>
+      <div style={{fontFamily:mono,fontSize:8.5,color:"#999",marginBottom:10}}>Enter monthly actuals as they come in to track against the +25% forecasts.</div>
+      <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:10}}>
+        <select value={budgetBranch} onChange={e=>setBudgetBranch(e.target.value)} style={{padding:"6px 10px",border:"1px solid #e5e1dc",borderRadius:5,fontFamily:sans,fontSize:11}}>
+          {BRANCHES.map(b=><option key={b} value={b}>{b}</option>)}
+        </select>
+        <select value={budgetMonth} onChange={e=>setBudgetMonth(e.target.value)} style={{padding:"6px 10px",border:"1px solid #e5e1dc",borderRadius:5,fontFamily:sans,fontSize:11}}>
+          {MONTHS_LIST.map(m=><option key={m} value={m}>{m}</option>)}
+        </select>
+        <button onClick={()=>{
+          const key=`manual-${budgetBranch}-${budgetMonth}`;
+          if(budgetData.find(r=>r.id===key)) return;
+          setBudgetData(prev=>[...prev,{id:key,branch:budgetBranch,month:budgetMonth,revF:0,revA:0,fcF:0,fcA:0,labF:0,labA:0,isHistorical:false}]);
+        }} style={{padding:"6px 14px",background:"#1e40af",color:"#fff",border:"none",borderRadius:5,fontFamily:sans,fontSize:11,fontWeight:700,cursor:"pointer"}}>
+          + Add Row
+        </button>
+      </div>
+      {manualRows.length===0
+        ?<div style={{textAlign:"center",padding:"24px",color:"#bbb",fontFamily:mono,fontSize:10,background:"#fafaf8",borderRadius:6,border:"1px dashed #e5e1dc"}}>
+          No manual entries yet — add 2026 actuals as they come in to track against the +25% forecasts above
+        </div>
+        :<div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:10.5}}>
+            <thead><tr style={{background:"#f5f3f0"}}>
+              {["Branch","Month","Rev Budget","Rev Actual","Var","FC Budget","FC Act","FC Var","Lab Budget","Lab Act","Lab Var","EBITDA B","EBITDA A","EBITDA Var",""].map((h,i)=>(
+                <th key={i} style={{padding:"6px 8px",fontFamily:mono,fontSize:7,color:"#666",textAlign:i<2?"left":"right",borderBottom:"2px solid #e5e1dc",whiteSpace:"nowrap",fontWeight:700}}>{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {manualRows.map(row=>{
+                const rV=(Number(row.revA)||0)-(Number(row.revF)||0);
+                const fV=(Number(row.fcA)||0)-(Number(row.fcF)||0);
+                const lV=(Number(row.labA)||0)-(Number(row.labF)||0);
+                const eB=(Number(row.revF)||0)-(Number(row.fcF)||0)-(Number(row.labF)||0);
+                const eA=(Number(row.revA)||0)-(Number(row.fcA)||0)-(Number(row.labA)||0);
+                const eV=eA-eB;
+                return <tr key={row.id} style={{borderBottom:"1px solid #f0f0ee"}}>
+                  <td style={{padding:"5px 8px",fontWeight:600}}>{row.branch}</td>
+                  <td style={{padding:"5px 8px",fontFamily:mono,fontSize:10,color:"#666"}}>{row.month}</td>
+                  <td style={{padding:"5px 8px",textAlign:"right"}}>{ei(row,"revF")}</td>
+                  <td style={{padding:"5px 8px",textAlign:"right"}}>{ei(row,"revA")}</td>
+                  {vc(rV)}
+                  <td style={{padding:"5px 8px",textAlign:"right"}}>{ei(row,"fcF")}</td>
+                  <td style={{padding:"5px 8px",textAlign:"right"}}>{ei(row,"fcA")}</td>
+                  {vc(fV,true)}
+                  <td style={{padding:"5px 8px",textAlign:"right"}}>{ei(row,"labF")}</td>
+                  <td style={{padding:"5px 8px",textAlign:"right"}}>{ei(row,"labA")}</td>
+                  {vc(lV,true)}
+                  <td style={{padding:"5px 8px",fontFamily:mono,fontSize:10,textAlign:"right",color:"#1e40af"}}>{eB.toLocaleString()}</td>
+                  <td style={{padding:"5px 8px",fontFamily:mono,fontSize:10,textAlign:"right",color:eA>0?"#16653a":eA<0?"#dc2626":"#1e40af",fontWeight:700}}>{eA.toLocaleString()}</td>
+                  {vc(eV)}
+                  <td style={{padding:"5px 8px"}}><button onClick={()=>setBudgetData(p=>p.filter(r=>r.id!==row.id))} style={{background:"#fee2e2",border:"none",borderRadius:3,padding:"2px 7px",color:"#dc2626",cursor:"pointer",fontSize:11}}>✕</button></td>
+                </tr>;
+              })}
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+
+  </div>);
 }
 
 function AgentWidget({mktPlan,tasks,view,updMktCh,updMktB2B,updMktPricing,setTasks,setView}){
@@ -417,14 +688,14 @@ const App = function App(){
     "Arab Mall":[1033984,1014478,1519114,1124471,1451800,1413182,1295312,1231300,1224091,1288472,1054234,1043917],
     "Concord":  [3102802,2914920,5527607,3015221,3291513,7638768,3150445,3146389,3526640,4896693,3343024,3356004],
   };
-  // Jan 2026 actual from file
-  const ACTUALS_2026 = {"Maadi-Jan 2026":null,"Kasr Ainy-Jan 2026":null,"Arab Mall-Jan 2026":null,"Concord-Jan 2026":null};
-  // Jan 2026 total actual = 9,533,841 — distribute proportionally by Jan 2025 share
+  // Jan 2026 actual = 9,533,841 total — distributed proportionally by Jan 2025 branch share
   const JAN25_TOTAL = 2656170+2500481+1033984+3102802;
-  ACTUALS_2026["Maadi-Jan 2026"]    = Math.round(9533841*(2656170/JAN25_TOTAL));
-  ACTUALS_2026["Kasr Ainy-Jan 2026"]= Math.round(9533841*(2500481/JAN25_TOTAL));
-  ACTUALS_2026["Arab Mall-Jan 2026"]= Math.round(9533841*(1033984/JAN25_TOTAL));
-  ACTUALS_2026["Concord-Jan 2026"]  = Math.round(9533841*(3102802/JAN25_TOTAL));
+  const ACTUALS_2026 = {
+    "Maadi-Jan 2026":     Math.round(9533841*(2656170/JAN25_TOTAL)),
+    "Kasr Ainy-Jan 2026": Math.round(9533841*(2500481/JAN25_TOTAL)),
+    "Arab Mall-Jan 2026": Math.round(9533841*(1033984/JAN25_TOTAL)),
+    "Concord-Jan 2026":   Math.round(9533841*(3102802/JAN25_TOTAL)),
+  };
 
   const mkHistRow=(branch,monthLabel,sales2025)=>{
     const fcast=Math.round(sales2025*1.25);
@@ -451,7 +722,6 @@ const App = function App(){
   const [budgetData,setBudgetData]=useState(INITIAL_BUDGET_DATA);
   const [budgetBranch,setBudgetBranch]=useState(BRANCHES[0]);
   const [budgetMonth,setBudgetMonth]=useState(MONTHS_LIST[0]);
-  const [editingBudget,setEditingBudget]=useState(null);
 
   // Incentive scheme inputs
   const [incentiveInputs,setIncentiveInputs]=useState({
@@ -527,54 +797,9 @@ const App = function App(){
     setShowAddComment(false);
   };
 
-  const updateBudget=(id,field,val)=>{
-    setBudgetData(prev=>prev.map(r=>r.id===id?{...r,[field]:val}:r));
-  };
-
-  const addBudgetRow=()=>{
-    const key=`${budgetBranch}-${budgetMonth}`;
-    if(budgetData.find(r=>r.id===key)) return;
-    setBudgetData(prev=>[...prev,mkBudgetRow(budgetBranch,budgetMonth)]);
-  };
-
-  const deleteBudgetRow=(id)=>setBudgetData(prev=>prev.filter(r=>r.id!==id));
-
   const deleteTask=(id)=>setTasks(prev=>prev.filter(t=>t.id!==id));
   const deleteComment=(id)=>setComments(prev=>prev.filter(c=>c.id!==id));
   const toggleCommentStatus=(id)=>setComments(prev=>prev.map(c=>c.id===id?{...c,status:c.status==="Open"?"Resolved":"Open"}:c));
-
-  // ─── BUDGET P&L NUMBERS (hooks must be before any conditional return) ───
-  const budgetTotals = useMemo(()=>{
-    const totRevF=budgetData.reduce((s,r)=>s+(Number(r.revF)||0),0);
-    const totRevA=budgetData.reduce((s,r)=>s+(Number(r.revA)||0),0);
-    const totFcA=budgetData.reduce((s,r)=>s+(Number(r.fcA)||0),0);
-    const totLabA=budgetData.reduce((s,r)=>s+(Number(r.labA)||0),0);
-    const totEbitdaA=totRevA-totFcA-totLabA;
-    const totEbitdaF=budgetData.reduce((s,r)=>s+(Number(r.revF)||0)-(Number(r.fcF)||0)-(Number(r.labF)||0),0);
-    return [
-      {l:"TOTAL FORECAST REV",v:totRevF.toLocaleString(),c:"#bbb"},
-      {l:"TOTAL ACTUAL REV",v:totRevA.toLocaleString(),c:"#D4863A"},
-      {l:"TOTAL EBITDA (F)",v:totEbitdaF.toLocaleString(),c:"#93c5fd"},
-      {l:"TOTAL EBITDA (A)",v:totEbitdaA.toLocaleString(),c:totEbitdaA>0?"#4ade80":"#f87171"},
-    ];
-  },[budgetData]);
-
-  const budgetSummary = useMemo(()=>{
-    const summary={};
-    BRANCHES.forEach(b=>{
-      summary[b]={revF:0,revA:0,fcF:0,fcA:0,labF:0,labA:0,ebitdaF:0,ebitdaA:0,count:0};
-    });
-    budgetData.forEach(row=>{
-      const s=summary[row.branch];
-      if(!s) return;
-      s.revF+=Number(row.revF)||0; s.revA+=Number(row.revA)||0;
-      s.fcF+=Number(row.fcF)||0; s.fcA+=Number(row.fcA)||0;
-      s.labF+=Number(row.labF)||0; s.labA+=Number(row.labA)||0;
-      s.ebitdaF+=Number(row.ebitdaF)||0; s.ebitdaA+=Number(row.ebitdaA)||0;
-      s.count++;
-    });
-    return summary;
-  },[budgetData]);
 
   if(!authed) return(
     <div style={{fontFamily:sans,background:"#f5f3f0",minHeight:"100vh",display:"flex",alignItems:"center",justifyContent:"center"}}>
@@ -1281,340 +1506,14 @@ const App = function App(){
         </div>}
 
         {/* ═══ BUDGET VS ACTUAL ═══ */}
-        {view==="budget"&&(()=>{
-          const MA=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        {view==="budget"&&<BudgetView
+          budgetData={budgetData} setBudgetData={setBudgetData}
+          budgetBranch={budgetBranch} setBudgetBranch={setBudgetBranch}
+          budgetMonth={budgetMonth} setBudgetMonth={setBudgetMonth}
+          HIST_BRANCHES={HIST_BRANCHES} BRANCHES={BRANCHES} MONTHS_LIST={MONTHS_LIST}
+        />}
 
-          // ── Derived totals from historicals ──
-          const brSummary = HIST_BRANCHES.map(b=>{
-            const rows = budgetData.filter(r=>r.branch===b && r.isHistorical);
-            return {
-              b,
-              annual2025: rows.reduce((s,r)=>s+(r.sales2025||0),0),
-              annual2026: rows.reduce((s,r)=>s+(r.fcast2026||0),0),
-              ram2025: rows[2]?.sales2025||0,   // March = Ramadan
-              ram2026: rows[2]?.fcast2026||0,
-              months: rows,
-            };
-          });
-          const g25  = brSummary.reduce((s,b)=>s+b.annual2025,0);
-          const g26  = brSummary.reduce((s,b)=>s+b.annual2026,0);
-          const gr25 = brSummary.reduce((s,b)=>s+b.ram2025,0);
-          const gr26 = brSummary.reduce((s,b)=>s+b.ram2026,0);
-          const jan26actual = 9533841, jan26budget = 10222780;
-          const jan26var = jan26actual - jan26budget;
-
-          // ── Branch tab selection ──
-          const [selB, setSelB] = React.useState(HIST_BRANCHES[0]);
-          const selRows = budgetData.filter(r=>r.branch===selB && r.isHistorical);
-
-          // ── Manual actual rows ──
-          const manualRows = budgetData.filter(r=>!r.isHistorical);
-
-          return(<div>
-
-            {/* ══ HEADER ══ */}
-            <div style={{background:"linear-gradient(135deg,#111827,#1e293b)",borderRadius:10,padding:"18px 22px",marginBottom:12}}>
-              <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(212,175,55,0.55)",letterSpacing:3,marginBottom:4}}>
-                SALES HISTORICALS · 4 BRANCHES · JAN–DEC 2025 → 2026 FORECAST +25%
-              </div>
-              <div style={{fontFamily:disp,fontSize:20,fontWeight:800,color:"#fff",marginBottom:14}}>
-                📊 Actual vs Budget — Branch Revenue Forecast
-              </div>
-              <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-                {[
-                  {l:"2025 Total Revenue",    v:`EGP ${(g25/1e6).toFixed(1)}M`,  sub:"4 branches · uploaded file",  c:"#D4863A"},
-                  {l:"2026 Forecast (+25%)",  v:`EGP ${(g26/1e6).toFixed(1)}M`,  sub:"same month × 1.25 uplift",    c:"#4ade80"},
-                  {l:"Ramadan 2025 (March)",  v:`EGP ${(gr25/1e6).toFixed(2)}M`, sub:"4-branch March spike",         c:"#f5e6a3"},
-                  {l:"Ramadan 2026 Forecast", v:`EGP ${(gr26/1e6).toFixed(2)}M`, sub:"+25% on March 2025 actuals",   c:"#f5e6a3"},
-                  {l:"Jan 2026 Actual",       v:`EGP ${jan26actual.toLocaleString()}`,sub:`${((jan26var/jan26budget)*100).toFixed(1)}% vs budget`,c:"#f87171"},
-                ].map((s,i)=>(
-                  <div key={i} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"10px 16px",minWidth:155,flex:1}}>
-                    <div style={{fontFamily:mono,fontSize:7,color:"rgba(255,255,255,0.35)",letterSpacing:1,marginBottom:3}}>{s.l.toUpperCase()}</div>
-                    <div style={{fontFamily:disp,fontSize:18,fontWeight:800,color:s.c}}>{s.v}</div>
-                    <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(255,255,255,0.28)"}}>{s.sub}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* ══ BRANCH CARDS ══ */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:12}}>
-              {brSummary.map((bt,i)=>{
-                const uplift = bt.annual2026 - bt.annual2025;
-                return(
-                  <div key={i} style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"14px 16px",cursor:"pointer",outline:selB===bt.b?"2px solid #1e293b":"none"}}
-                    onClick={()=>setSelB(bt.b)}>
-                    <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#222",marginBottom:10}}>{bt.b}</div>
-                    <div style={{marginBottom:6}}>
-                      <div style={{fontFamily:mono,fontSize:7.5,color:"#aaa",marginBottom:1}}>2025 ACTUAL</div>
-                      <div style={{fontFamily:disp,fontSize:15,fontWeight:800,color:"#444"}}>EGP {(bt.annual2025/1e6).toFixed(2)}M</div>
-                    </div>
-                    <div style={{marginBottom:8}}>
-                      <div style={{fontFamily:mono,fontSize:7.5,color:"#16653a",marginBottom:1}}>2026 FORECAST (+25%)</div>
-                      <div style={{fontFamily:disp,fontSize:15,fontWeight:800,color:"#16653a"}}>EGP {(bt.annual2026/1e6).toFixed(2)}M</div>
-                      <div style={{fontFamily:mono,fontSize:7.5,color:"#16653a",marginTop:1}}>+EGP {Math.round(uplift/1000).toLocaleString()}K uplift</div>
-                    </div>
-                    <div style={{borderTop:"1px solid #f0ede8",paddingTop:8}}>
-                      <div style={{fontFamily:mono,fontSize:7,color:"#d97706",letterSpacing:1,marginBottom:3}}>🌙 RAMADAN (MARCH)</div>
-                      <div style={{fontFamily:mono,fontSize:8.5,color:"#999"}}>2025: EGP {Math.round(bt.ram2025/1000).toLocaleString()}K</div>
-                      <div style={{fontFamily:disp,fontSize:13,fontWeight:800,color:"#d97706"}}>2026: EGP {Math.round(bt.ram2026/1000).toLocaleString()}K</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* ══ MONTHLY TABLE ══ */}
-            <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px",marginBottom:12}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                <div>
-                  <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222"}}>
-                    Monthly Breakdown — {selB}
-                  </div>
-                  <div style={{fontFamily:mono,fontSize:8.5,color:"#999",marginTop:2}}>
-                    2025 actuals from uploaded file · 2026 forecast = same month × 1.25 · avg check +25%
-                  </div>
-                </div>
-                <div style={{display:"flex",gap:4,flexWrap:"wrap"}}>
-                  {HIST_BRANCHES.map(b=>(
-                    <button key={b} onClick={()=>setSelB(b)} style={{padding:"4px 10px",borderRadius:5,border:"1px solid #e5e1dc",fontFamily:mono,fontSize:8.5,fontWeight:700,cursor:"pointer",background:selB===b?"#1e293b":"#f9f8f6",color:selB===b?"#fff":"#555",transition:"all 0.15s"}}>
-                      {b}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div style={{overflowX:"auto"}}>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:11}}>
-                  <thead>
-                    <tr style={{background:"#f5f3f0"}}>
-                      {["Month","2025 Actual (EGP)","2026 Forecast +25% (EGP)","Uplift (EGP)","Uplift %","Avg Check 2026","Note"].map((h,i)=>(
-                        <th key={i} style={{padding:"8px 10px",fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:0.8,textAlign:i===0?"left":"right",borderBottom:"2px solid #e5e1dc",fontWeight:700,whiteSpace:"nowrap"}}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selRows.map((row,i)=>{
-                      const isRam = i===2; // March
-                      const isJun = i===5; // June spike (Concord Eid)
-                      const uplift = (row.fcast2026||0)-(row.sales2025||0);
-                      const note = isRam?"🌙 Ramadan":isJun&&selB==="Concord"?"🎉 Eid spike":"";
-                      const avgCheck = isRam ? 425 : Math.round(340*1.25);
-                      return(
-                        <tr key={i} style={{borderBottom:"1px solid #f5f3f0",background:isRam?"#fffbeb":isJun&&selB==="Concord"?"#f0fdf4":"#fff"}}>
-                          <td style={{padding:"7px 10px",fontFamily:isRam||isJun?disp:sans,fontWeight:isRam||isJun?700:400,color:isRam?"#d97706":isJun&&selB==="Concord"?"#16653a":"#333"}}>
-                            {MA[i]} 2025
-                          </td>
-                          <td style={{padding:"7px 10px",fontFamily:mono,fontSize:11,textAlign:"right",color:"#555"}}>
-                            {(row.sales2025||0).toLocaleString()}
-                          </td>
-                          <td style={{padding:"7px 10px",fontFamily:mono,fontSize:11,textAlign:"right",fontWeight:700,color:"#16653a"}}>
-                            {(row.fcast2026||0).toLocaleString()}
-                          </td>
-                          <td style={{padding:"7px 10px",fontFamily:mono,fontSize:11,textAlign:"right",color:"#16653a"}}>
-                            +{uplift.toLocaleString()}
-                          </td>
-                          <td style={{padding:"7px 10px",fontFamily:mono,fontSize:11,textAlign:"right",fontWeight:700,color:"#16653a"}}>
-                            +25%
-                          </td>
-                          <td style={{padding:"7px 10px",fontFamily:mono,fontSize:11,textAlign:"right",color:isRam?"#d97706":"#888"}}>
-                            EGP {isRam?425:425}
-                          </td>
-                          <td style={{padding:"7px 10px",textAlign:"right"}}>
-                            {note&&<span style={{fontFamily:mono,fontSize:8,padding:"2px 7px",borderRadius:3,background:isRam?"#fef3c7":isJun?"#dcfce7":"#f0f0ee",color:isRam?"#d97706":isJun?"#16653a":"#888",fontWeight:700}}>{note}</span>}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr style={{background:"#f5f3f0",borderTop:"2px solid #e5e1dc"}}>
-                      <td style={{padding:"8px 10px",fontFamily:mono,fontSize:8,fontWeight:700,color:"#555"}}>ANNUAL TOTAL</td>
-                      <td style={{padding:"8px 10px",fontFamily:mono,fontSize:12,textAlign:"right",fontWeight:800,color:"#333"}}>
-                        {selRows.reduce((s,r)=>s+(r.sales2025||0),0).toLocaleString()}
-                      </td>
-                      <td style={{padding:"8px 10px",fontFamily:mono,fontSize:12,textAlign:"right",fontWeight:800,color:"#16653a"}}>
-                        {selRows.reduce((s,r)=>s+(r.fcast2026||0),0).toLocaleString()}
-                      </td>
-                      <td style={{padding:"8px 10px",fontFamily:mono,fontSize:12,textAlign:"right",fontWeight:700,color:"#16653a"}}>
-                        +{(selRows.reduce((s,r)=>s+(r.fcast2026||0),0)-selRows.reduce((s,r)=>s+(r.sales2025||0),0)).toLocaleString()}
-                      </td>
-                      <td style={{padding:"8px 10px",fontFamily:mono,fontSize:12,textAlign:"right",fontWeight:700,color:"#16653a"}}>+25%</td>
-                      <td colSpan={2}/>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            </div>
-
-            {/* ══ RAMADAN FORECAST ══ */}
-            <div style={{background:"linear-gradient(135deg,#0d0d1a,#1a0a2e,#2d1b4e)",borderRadius:10,padding:"18px 22px",marginBottom:12}}>
-              <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(212,175,55,0.5)",letterSpacing:3,marginBottom:4}}>
-                RAMADAN 1446 · MARCH 2026 · 4-BRANCH REVENUE FORECAST
-              </div>
-              <div style={{fontFamily:disp,fontSize:18,fontWeight:800,color:"#f5e6a3",marginBottom:14}}>
-                🌙 Ramadan Month — Historical vs Forecast
-              </div>
-
-              {/* Per-branch Ramadan cards */}
-              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14}}>
-                {[
-                  {b:"Maadi",    r25:5219962, r26:6524953, coversNight:512},
-                  {b:"Kasr Ainy",r25:2825767, r26:3532209, coversNight:277},
-                  {b:"Arab Mall",r25:1519114, r26:1898892, coversNight:149},
-                  {b:"Concord",  r25:5527607, r26:6909509, coversNight:542},
-                ].map((br,i)=>(
-                  <div key={i} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.12)",borderRadius:8,padding:"12px 14px"}}>
-                    <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(212,175,55,0.6)",letterSpacing:1.5,marginBottom:5}}>{br.b.toUpperCase()}</div>
-                    <div style={{fontFamily:mono,fontSize:8,color:"rgba(255,255,255,0.4)",marginBottom:2}}>2025 actual: EGP {(br.r25/1e3).toFixed(0)}K</div>
-                    <div style={{fontFamily:disp,fontSize:20,fontWeight:800,color:"#f5e6a3"}}>EGP {(br.r26/1e3).toFixed(0)}K</div>
-                    <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(255,255,255,0.35)",marginTop:4}}>~{br.coversNight} covers/night</div>
-                    <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(255,255,255,0.35)"}}>avg check EGP 425 (+25%)</div>
-                    <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(255,255,255,0.35)"}}>+EGP {((br.r26-br.r25)/1e3).toFixed(0)}K uplift</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Summary bar */}
-              <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-                {[
-                  {l:"Total Ramadan 2026",       v:`EGP ${(gr26/1e6).toFixed(2)}M`,  sub:"all 4 branches · March 2026",  c:"#f5e6a3"},
-                  {l:"Growth vs Ramadan 2025",   v:`+EGP ${((gr26-gr25)/1e3).toFixed(0)}K`, sub:"+25% on March 2025 base",     c:"#4ade80"},
-                  {l:"Avg Check Applied",         v:"EGP 425",                         sub:"EGP 340 baseline +25% uplift",  c:"#a78bfa"},
-                ].map((s,i)=>(
-                  <div key={i} style={{background:"rgba(255,255,255,0.07)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:8,padding:"14px 16px"}}>
-                    <div style={{fontFamily:mono,fontSize:7.5,color:"rgba(255,255,255,0.35)",letterSpacing:1,marginBottom:4}}>{s.l.toUpperCase()}</div>
-                    <div style={{fontFamily:disp,fontSize:22,fontWeight:800,color:s.c}}>{s.v}</div>
-                    <div style={{fontFamily:mono,fontSize:8,color:"rgba(255,255,255,0.3)",marginTop:3}}>{s.sub}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* ══ JAN 2026 ACTUAL vs BUDGET ══ */}
-            <div style={{background:"#fff",border:"1px solid #fecaca",borderLeft:"4px solid #dc2626",borderRadius:10,padding:"16px 18px",marginBottom:12}}>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:12}}>
-                <div>
-                  <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222"}}>🔴 January 2026 — Actual vs Budget (from file)</div>
-                  <div style={{fontFamily:mono,fontSize:8.5,color:"#999",marginTop:2}}>Only month with actual data in uploaded file · 4-branch combined</div>
-                </div>
-                <div style={{textAlign:"right"}}>
-                  <div style={{fontFamily:mono,fontSize:8,color:"#bbb",marginBottom:2}}>VARIANCE</div>
-                  <div style={{fontFamily:disp,fontSize:22,fontWeight:800,color:"#dc2626"}}>-EGP {Math.abs(jan26var).toLocaleString()}</div>
-                  <div style={{fontFamily:mono,fontSize:9,color:"#dc2626"}}>-6.7% vs budget</div>
-                </div>
-              </div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8}}>
-                {[
-                  {b:"Maadi",     budget:2921787, actual:2724880},
-                  {b:"Kasr Ainy", budget:2750529, actual:2565164},
-                  {b:"Arab Mall", budget:1137382, actual:1060731},
-                  {b:"Concord",   budget:3413082, actual:3183066},
-                ].map((br,i)=>{
-                  const v=br.actual-br.budget;
-                  const pct=((v/br.budget)*100).toFixed(1);
-                  return(
-                    <div key={i} style={{background:"#fafaf8",borderRadius:8,padding:"10px 12px",border:"1px solid #e5e1dc"}}>
-                      <div style={{fontFamily:mono,fontSize:8,color:"#999",marginBottom:4}}>{br.b.toUpperCase()}</div>
-                      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:4,marginBottom:4}}>
-                        <div>
-                          <div style={{fontFamily:mono,fontSize:7,color:"#aaa"}}>BUDGET</div>
-                          <div style={{fontFamily:mono,fontSize:10,fontWeight:700}}>{br.budget.toLocaleString()}</div>
-                        </div>
-                        <div>
-                          <div style={{fontFamily:mono,fontSize:7,color:"#aaa"}}>ACTUAL</div>
-                          <div style={{fontFamily:mono,fontSize:10,fontWeight:700}}>{br.actual.toLocaleString()}</div>
-                        </div>
-                      </div>
-                      <div style={{fontFamily:mono,fontSize:10,color:v>=0?"#16653a":"#dc2626",fontWeight:700}}>
-                        {v>=0?"+":""}{v.toLocaleString()} ({pct}%)
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* ══ MANUAL ENTRY ══ */}
-            <div style={{background:"#fff",border:"1px solid #e5e1dc",borderRadius:10,padding:"16px"}}>
-              <div style={{fontFamily:disp,fontSize:14,fontWeight:700,color:"#222",marginBottom:2}}>✏️ Add 2026 Actual vs Budget</div>
-              <div style={{fontFamily:mono,fontSize:8.5,color:"#999",marginBottom:10}}>
-                Enter monthly actuals as they come in. Forecast pre-populated from historicals above.
-              </div>
-              <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",marginBottom:10}}>
-                <select value={budgetBranch} onChange={e=>setBudgetBranch(e.target.value)} style={{padding:"6px 10px",border:"1px solid #e5e1dc",borderRadius:5,fontFamily:sans,fontSize:11}}>
-                  {BRANCHES.map(b=><option key={b} value={b}>{b}</option>)}
-                </select>
-                <select value={budgetMonth} onChange={e=>setBudgetMonth(e.target.value)} style={{padding:"6px 10px",border:"1px solid #e5e1dc",borderRadius:5,fontFamily:sans,fontSize:11}}>
-                  {MONTHS_LIST.map(m=><option key={m} value={m}>{m}</option>)}
-                </select>
-                <button onClick={()=>{
-                  const key=`manual-${budgetBranch}-${budgetMonth}`;
-                  if(budgetData.find(r=>r.id===key)) return;
-                  // Pre-fill forecast from historicals if branch is one of the 4
-                  const histRow = budgetData.find(r=>r.branch===budgetBranch && r.isHistorical && r.month===budgetMonth.replace("2026","2025").replace("2025","2025"));
-                  const preF = histRow?.fcast2026||0;
-                  setBudgetData(prev=>[...prev,{id:key,branch:budgetBranch,month:budgetMonth,revF:preF,revA:0,fcF:0,fcA:0,labF:0,labA:0,isHistorical:false}]);
-                }} style={{padding:"6px 14px",background:"#1e40af",color:"#fff",border:"none",borderRadius:5,fontFamily:sans,fontSize:11,fontWeight:700,cursor:"pointer"}}>
-                  + Add Row
-                </button>
-              </div>
-              {manualRows.length===0
-                ?<div style={{textAlign:"center",padding:"24px",color:"#bbb",fontFamily:mono,fontSize:10,background:"#fafaf8",borderRadius:6,border:"1px dashed #e5e1dc"}}>
-                  No manual entries yet — add 2026 actuals as they come in to track against the +25% forecasts above
-                </div>
-                :<div style={{overflowX:"auto"}}>
-                  <table style={{width:"100%",borderCollapse:"collapse",fontSize:10.5}}>
-                    <thead><tr style={{background:"#f5f3f0"}}>
-                      {["Branch","Month","Rev Budget","Rev Actual","Rev Var","FC Budget","FC Actual","FC Var","Lab Budget","Lab Actual","Lab Var","EBITDA B","EBITDA A","EBITDA Var",""].map((h,i)=>(
-                        <th key={i} style={{padding:"6px 8px",fontFamily:mono,fontSize:7,color:"#666",textAlign:i<2?"left":"right",borderBottom:"2px solid #e5e1dc",whiteSpace:"nowrap",fontWeight:700}}>{h}</th>
-                      ))}
-                    </tr></thead>
-                    <tbody>
-                      {manualRows.map(row=>{
-                        const rV=(Number(row.revA)||0)-(Number(row.revF)||0);
-                        const fV=(Number(row.fcA)||0)-(Number(row.fcF)||0);
-                        const lV=(Number(row.labA)||0)-(Number(row.labF)||0);
-                        const eB=(Number(row.revF)||0)-(Number(row.fcF)||0)-(Number(row.labF)||0);
-                        const eA=(Number(row.revA)||0)-(Number(row.fcA)||0)-(Number(row.labA)||0);
-                        const eV=eA-eB;
-                        const vc=(v,inv=false)=>{
-                          const good=inv?v<0:v>0;
-                          return <td style={{padding:"5px 8px",fontFamily:mono,fontSize:10,textAlign:"right",color:v===0?"#888":good?"#16653a":"#dc2626",fontWeight:600}}>
-                            {v>0?"+":""}{v.toLocaleString()}
-                          </td>;
-                        };
-                        const ei=(f)=><input type="number" value={row[f]||""} onChange={e=>setBudgetData(p=>p.map(r=>r.id===row.id?{...r,[f]:e.target.value}:r))}
-                          style={{width:82,padding:"3px 6px",border:"1px solid #e5e1dc",borderRadius:3,fontFamily:mono,fontSize:10,textAlign:"right"}}/>;
-                        return <tr key={row.id} style={{borderBottom:"1px solid #f0f0ee"}}>
-                          <td style={{padding:"5px 8px",fontWeight:600}}>{row.branch}</td>
-                          <td style={{padding:"5px 8px",fontFamily:mono,fontSize:10,color:"#666"}}>{row.month}</td>
-                          <td style={{padding:"5px 8px",textAlign:"right"}}>{ei("revF")}</td>
-                          <td style={{padding:"5px 8px",textAlign:"right"}}>{ei("revA")}</td>
-                          {vc(rV)}
-                          <td style={{padding:"5px 8px",textAlign:"right"}}>{ei("fcF")}</td>
-                          <td style={{padding:"5px 8px",textAlign:"right"}}>{ei("fcA")}</td>
-                          {vc(fV,true)}
-                          <td style={{padding:"5px 8px",textAlign:"right"}}>{ei("labF")}</td>
-                          <td style={{padding:"5px 8px",textAlign:"right"}}>{ei("labA")}</td>
-                          {vc(lV,true)}
-                          <td style={{padding:"5px 8px",fontFamily:mono,fontSize:10,textAlign:"right",color:"#1e40af"}}>{eB.toLocaleString()}</td>
-                          <td style={{padding:"5px 8px",fontFamily:mono,fontSize:10,textAlign:"right",color:eA>0?"#16653a":eA<0?"#dc2626":"#1e40af",fontWeight:700}}>{eA.toLocaleString()}</td>
-                          {vc(eV)}
-                          <td style={{padding:"5px 8px"}}>
-                            <button onClick={()=>setBudgetData(p=>p.filter(r=>r.id!==row.id))} style={{background:"#fee2e2",border:"none",borderRadius:3,padding:"2px 7px",color:"#dc2626",cursor:"pointer",fontSize:11}}>✕</button>
-                          </td>
-                        </tr>;
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              }
-            </div>
-
-          </div>);
-        })()}
-
-        {/* ═══ COMMENTS & TASKS ═══ */}
+                {/* ═══ COMMENTS & TASKS ═══ */}
         {view==="notes"&&<div>
           <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap",alignItems:"center"}}>
             <div>
@@ -2436,7 +2335,7 @@ const App = function App(){
           );
         })()}
 
-        view==="reqs"&&<div>
+        {view==="reqs"&&<div>
           <div style={{fontFamily:mono,fontSize:8,color:"#999",letterSpacing:1.5,marginBottom:8}}>CLIENT-SIDE REQUIREMENTS</div>
           {requirements.map((r,i)=>(
             <div key={i} style={{display:"grid",gridTemplateColumns:"1fr 110px 65px 50px",gap:5,alignItems:"center",padding:"7px 10px",background:"#fff",border:"1px solid #e5e1dc",borderRadius:5,borderLeft:r.critical?"3px solid #dc2626":"3px solid #ddd",marginBottom:2}}>
