@@ -162,6 +162,78 @@ const requirements = [
 ];
 
 // Buckets without B4
+const DOC_CYCLES = {
+  B1: {
+    cpu: [
+      {cat:"Produces",docs:["Bank Reconciliation Template","Chart of Accounts (per branch)","Food Costing Workbook","Fixed Assets Register","Branch P&L Template (W4-6)","Consolidated P&L (W6-8)","Financial Position Statement"]},
+      {cat:"Requests from Branches",docs:["Bank statements — all accounts, 3 months","Daily sales Z-reports / POS exports","Supplier invoices & purchase orders","Petty cash vouchers & receipts","Asset list / existing inventory"]},
+    ],
+    branches: [
+      {cat:"Must Provide",docs:["Bank statements (all accounts, 3 months)","Daily Z-reports or POS data","All supplier invoices & POs","Petty cash log + receipts","Asset lists & depreciation schedule"]},
+      {cat:"Receives from C²",docs:["Bank reconciliation per branch","Chart of accounts + coding guide","Branch P&L (reviewed monthly)","Consolidated Group P&L","Financial Position Statement"]},
+    ],
+  },
+  B2: {
+    cpu: [
+      {cat:"Produces",docs:["Stock Take Counting Sheet","Recipe Costing Cards (all items)","Variance Analysis Report","Purchases Pattern Analysis","Revenue Deep-Dive Report","Branch Expense Audit Report"]},
+      {cat:"Requests from Branches",docs:["Physical stock count (W2 baseline)","Current menu + portion specs","Supplier delivery notes (3 months)","Wastage / breakage log","Branch petty cash breakdown"]},
+    ],
+    branches: [
+      {cat:"Must Provide",docs:["Full physical stock count (live, W2)","Current menu with portions & prices","All supplier delivery notes","Wastage & spoilage records","Branch expense breakdown"]},
+      {cat:"Receives from C²",docs:["Recipe costing cards (target cost %)","Stock variance report (over/under)","Purchases pattern: supplier & SKU","Revenue mix & margin by item","Expense reduction recommendations"]},
+    ],
+  },
+  B3: {
+    cpu: [
+      {cat:"Produces",docs:["Menu Engineering Matrix","Updated Pricing Recommendations","Opening & Closing Procedure SOP","Daily Inspection Checklist","Discount Policy Framework","Sales Mix Optimisation Report"]},
+      {cat:"Requests from Branches",docs:["Current menu + competitor pricing","Discount log (last 3 months)","Daily cash reconciliation sheets","Existing checklists (if any)","Customer complaint log"]},
+    ],
+    branches: [
+      {cat:"Must Provide",docs:["Current menu with all prices","Discount & void log (3 months)","Daily cash-up sheets","Any existing SOPs or checklists","Staff complaints / incident log"]},
+      {cat:"Receives from C²",docs:["Menu engineering matrix (Stars/Dogs/Puzzles)","New pricing recommendations","Opening & closing procedure SOPs","Daily inspection & cleaning checklists","Discount authorisation policy"]},
+    ],
+  },
+  B5: {
+    cpu: [
+      {cat:"Produces",docs:["HR Audit Report","Proposed Org Chart","Job Descriptions (all roles)","Salary Benchmarking Report","Policies & Procedures Manual","Weekly Ops KPI Dashboard","Monthly Financial Reporting Pack"]},
+      {cat:"Requests from Branches",docs:["Full staff list with salaries & start dates","Employment contracts","Attendance & leave records (3 months)","Current org chart (if exists)","Branch hours & shift schedule"]},
+    ],
+    branches: [
+      {cat:"Must Provide",docs:["Complete staff roster with salaries","All employment contracts","Attendance records (3 months)","Shift schedules & rotas","Any existing HR policies"]},
+      {cat:"Receives from C²",docs:["HR audit findings & recommendations","Proposed org chart per branch","Job descriptions (all roles)","Salary benchmark comparison","P&P manual + compliance checklist"]},
+    ],
+  },
+  B6: {
+    cpu: [
+      {cat:"Produces",docs:["QC Contract Analysis Report","Renegotiation Strategy Brief","Supplier Term Sheet (counter-proposal)","Settlement Schedule","Deal Summary & Savings Report"]},
+      {cat:"Requests from Branches",docs:["All QC contracts & current terms","QC invoice history (12 months)","Outstanding supplier balances","Supplier contact list","Existing negotiation notes / disputes"]},
+    ],
+    branches: [
+      {cat:"Must Provide",docs:["QC contracts (all active suppliers)","12-month QC invoice history","Aged payables report","Supplier contact details","Any ongoing disputes or credits"]},
+      {cat:"Receives from C²",docs:["Contract analysis: risk & savings","Renegotiation talking points","Counter-proposal term sheets","Revised settlement schedule","Final deal summary + savings achieved"]},
+    ],
+  },
+  B7: {
+    cpu: [
+      {cat:"Produces",docs:["Digital Presence Audit Report","GMB Optimisation Checklist","Brand Standards Guide","Paid Channel Test Brief","CRM / WhatsApp Sequence Templates","Marketing Funnel Report (weekly)"]},
+      {cat:"Requests from Branches",docs:["GMB & social media account access","Existing photography & brand assets","Customer database / contacts","Current promotions & offers","Online review log (Google, TripAdvisor)"]},
+    ],
+    branches: [
+      {cat:"Must Provide",docs:["Google My Business login access","Social media credentials","Customer contact database","Brand assets & existing photos","Feedback & review history"]},
+      {cat:"Receives from C²",docs:["Digital audit with improvement priorities","GMB setup & optimisation guide","Brand standards guide","Paid channel brief + budget plan","CRM templates (WhatsApp / email sequences)"]},
+    ],
+  },
+  B8: {
+    cpu: [
+      {cat:"Produces",docs:["Incentive Scheme Design Document","Commission Calculation Model","KPI Scorecard Template","Leaderboard Tracking Sheet","Scheme Launch Presentation","Monthly Payout Summary"]},
+      {cat:"Requests from Branches",docs:["HR audit output (W1 salary baseline)","Branch P&L data (W5+ for KPI setting)","Current bonus / incentive arrangements","Manager & FOH staff roster","Historical sales per staff (if available)"]},
+    ],
+    branches: [
+      {cat:"Must Provide",docs:["Salary baseline from HR audit","Branch P&L once available (W5+)","Any existing bonus agreements","Staff roster: managers & FOH","Sales data per staff member (if tracked)"]},
+      {cat:"Receives from C²",docs:["Full incentive scheme document","Commission model (interactive)","Individual KPI scorecards","Leaderboard tracking template","Training materials for launch"]},
+    ],
+  },
+};
 const buckets = [
   { id:"B1",name:"Financial Visibility & Controls",color:"#1e40af",bg:"#eff6ff",bdr:"#bfdbfe",ico:"📊",tier:"quick",weeks:"1–8",primaryPrio:"cost",impactPills:[{p:"cash",v:"EGP 1.2M+",l:"Accrued collections"},{p:"cost",v:"EGP 3–8M",l:"Food & asset cost fix"},{p:"rev",v:"2–5%",l:"Unrecorded revenue"}],desc:"Foundation layer. Bank reconciliation, transaction registration, food costing, and assets start W1. P&L per Branch comes first (W4–6) — branches must be clean before consolidating. Consolidated P&L follows (W6–8). Financial Position Statement last." },
   { id:"B2",name:"Cost & Revenue Deep-Dive",color:"#a16207",bg:"#fffbeb",bdr:"#fde68a",ico:"🔍",tier:"medium",weeks:"2–9",primaryPrio:"cost",impactPills:[{p:"cost",v:"EGP 450K–1.35M",l:"Shrinkage control"},{p:"cost",v:"5–12%",l:"Branch expense cuts"},{p:"rev",v:"3–8%",l:"Revenue uplift"}],desc:"Stock take and menu costing start W2 once transactions are registered. Purchases analysis W3–5. Revenue and expense deep-dives wait until branch P&Ls are stable (W7–9)." },
@@ -1159,6 +1231,70 @@ const App = function App(){
                   </div>
                   <div style={{fontFamily:mono,fontSize:8.5,color:"#be185d"}}>⚠ Funnel conversion data will be populated once CRM, GMB analytics, and POS data are connected (W3–5)</div>
                 </div>}
+
+                {/* Document Cycle Panel */}
+                {DOC_CYCLES[b.id]&&(()=>{
+                  const dc=DOC_CYCLES[b.id];
+                  const cpuColor=b.color, branchColor="#374151";
+                  return(
+                  <div style={{background:"#fafaf8",border:"1px solid #e5e1dc",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
+                    <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:12}}>
+                      <span style={{fontSize:13}}>🔄</span>
+                      <span style={{fontFamily:disp,fontSize:12,fontWeight:700,color:"#222"}}>Document Cycle</span>
+                      <span style={{fontFamily:mono,fontSize:7.5,color:"#999",letterSpacing:1,marginLeft:4}}>WHAT FLOWS BETWEEN C² AND BRANCHES</span>
+                    </div>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                      {/* CPU side */}
+                      <div style={{background:"#fff",border:"1px solid "+cpuColor+"30",borderTop:"3px solid "+cpuColor,borderRadius:7,padding:"12px 14px"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:10}}>
+                          <div style={{width:8,height:8,borderRadius:"50%",background:cpuColor,flexShrink:0}}/>
+                          <span style={{fontFamily:mono,fontSize:8,fontWeight:700,color:cpuColor,letterSpacing:1}}>C² / CPU SIDE</span>
+                        </div>
+                        {dc.cpu.map((group,gi)=>(
+                          <div key={gi} style={{marginBottom:gi<dc.cpu.length-1?10:0}}>
+                            <div style={{fontFamily:mono,fontSize:7.5,color:cpuColor,letterSpacing:0.8,fontWeight:700,marginBottom:5,opacity:0.8}}>
+                              {group.cat==="Produces"?"📤 "+group.cat.toUpperCase():"📥 "+group.cat.toUpperCase()}
+                            </div>
+                            {group.docs.map((doc,di)=>(
+                              <div key={di} style={{display:"flex",alignItems:"flex-start",gap:5,padding:"3px 0",borderBottom:di<group.docs.length-1?"1px solid #f5f3f0":"none"}}>
+                                <span style={{color:cpuColor,fontSize:9,flexShrink:0,marginTop:1}}>{group.cat==="Produces"?"▪":"◦"}</span>
+                                <span style={{fontFamily:sans,fontSize:9.5,color:"#444",lineHeight:1.4}}>{doc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                      {/* Branches side */}
+                      <div style={{background:"#fff",border:"1px solid #37415130",borderTop:"3px solid #374151",borderRadius:7,padding:"12px 14px"}}>
+                        <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:10}}>
+                          <div style={{width:8,height:8,borderRadius:"50%",background:"#374151",flexShrink:0}}/>
+                          <span style={{fontFamily:mono,fontSize:8,fontWeight:700,color:"#374151",letterSpacing:1}}>BRANCHES SIDE</span>
+                        </div>
+                        {dc.branches.map((group,gi)=>(
+                          <div key={gi} style={{marginBottom:gi<dc.branches.length-1?10:0}}>
+                            <div style={{fontFamily:mono,fontSize:7.5,color:"#374151",letterSpacing:0.8,fontWeight:700,marginBottom:5,opacity:0.8}}>
+                              {group.cat.startsWith("Must")?"📤 "+group.cat.toUpperCase():"📥 "+group.cat.toUpperCase()}
+                            </div>
+                            {group.docs.map((doc,di)=>(
+                              <div key={di} style={{display:"flex",alignItems:"flex-start",gap:5,padding:"3px 0",borderBottom:di<group.docs.length-1?"1px solid #f5f3f0":"none"}}>
+                                <span style={{color:"#374151",fontSize:9,flexShrink:0,marginTop:1}}>{group.cat.startsWith("Must")?"▪":"◦"}</span>
+                                <span style={{fontFamily:sans,fontSize:9.5,color:"#444",lineHeight:1.4}}>{doc}</span>
+                              </div>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div style={{display:"flex",justifyContent:"center",marginTop:8,gap:16}}>
+                      <div style={{display:"flex",alignItems:"center",gap:4,fontFamily:mono,fontSize:7.5,color:"#999"}}>
+                        <span style={{color:cpuColor}}>▪</span> Outgoing (produces/provides)
+                      </div>
+                      <div style={{display:"flex",alignItems:"center",gap:4,fontFamily:mono,fontSize:7.5,color:"#999"}}>
+                        <span style={{color:cpuColor}}>◦</span> Incoming (requests/receives)
+                      </div>
+                    </div>
+                  </div>);
+                })()}
 
                 {groups.map(g=>{const pr=PRIO[g.key];return(
                   <div key={g.key} style={{marginBottom:8}}>
