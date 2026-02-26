@@ -530,6 +530,9 @@ function AgentWidget({mktPlan,tasks,view,updMktCh,updMktB2B,updMktPricing,setTas
   const [agentInput,setAgentInput]=useState("");
   const [agentLoading,setAgentLoading]=useState(false);
   const [agentError,setAgentError]=useState("");
+  const [apiKey,setApiKey]=useState(()=>{try{return localStorage.getItem("c2_ak")||"";}catch(e){return ""}});
+  const [keyDraft,setKeyDraft]=useState("");
+  const [showKeyEntry,setShowKeyEntry]=useState(false);
   const msgEndRef=useRef(null);
   const sans="DM Sans,sans-serif", mono="DM Mono,monospace", disp="DM Sans,sans-serif";
 
@@ -577,6 +580,7 @@ Be concise. Use numbers. Answer in context of F&B Egypt turnaround consulting.`;
   const sendMessage=async()=>{
     const text=agentInput.trim();
     if(!text||agentLoading)return;
+    if(!apiKey){setShowKeyEntry(true);return;}
     setAgentInput("");setAgentError("");
     const newMsgs=[...agentMsgs,{role:"user",content:text}];
     setAgentMsgs(newMsgs);
@@ -585,7 +589,7 @@ Be concise. Use numbers. Answer in context of F&B Egypt turnaround consulting.`;
     try{
       let iters=6;
       while(iters-->0){
-        const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:SYSTEM,tools:TOOLS,messages:apiMsgs})});
+        const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,system:SYSTEM,tools:TOOLS,messages:apiMsgs})});
         const data=await res.json();
         if(!res.ok){setAgentError(data.error?.message||"API error "+res.status);break;}
         const toolUses=data.content.filter(b=>b.type==="tool_use");
@@ -642,6 +646,28 @@ Be concise. Use numbers. Answer in context of F&B Egypt turnaround consulting.`;
           <div ref={msgEndRef}/>
         </div>
 
+        {/* No-key banner */}
+        {!apiKey&&!showKeyEntry&&<div onClick={()=>setShowKeyEntry(true)} style={{padding:"7px 12px",background:"#fef3c7",borderTop:"1px solid #fde68a",cursor:"pointer",flexShrink:0,display:"flex",alignItems:"center",gap:6}}>
+          <span style={{fontSize:13}}>&#128273;</span>
+          <span style={{fontFamily:sans,fontSize:10,color:"#92400e",fontWeight:600}}>Set Anthropic API key to enable AI chat</span>
+          <span style={{marginLeft:"auto",fontFamily:mono,fontSize:8,color:"#b45309",textDecoration:"underline"}}>click to add</span>
+        </div>}
+
+        {/* Key entry panel */}
+        {showKeyEntry&&<div style={{padding:"10px 12px",borderTop:"1px solid #fde68a",background:"#fffbeb",flexShrink:0}}>
+          <div style={{fontFamily:mono,fontSize:8,color:"#92400e",marginBottom:5,fontWeight:700}}>ANTHROPIC API KEY</div>
+          <div style={{fontFamily:sans,fontSize:10,color:"#78350f",marginBottom:7}}>From console.anthropic.com &mdash; stored locally in browser only.</div>
+          <div style={{display:"flex",gap:5}}>
+            <input value={keyDraft} onChange={e=>setKeyDraft(e.target.value)} placeholder="sk-ant-api03-..." type="password"
+              style={{flex:1,padding:"6px 8px",border:"1px solid #fbbf24",borderRadius:5,fontFamily:mono,fontSize:10,outline:"none"}}
+              onKeyDown={e=>{if(e.key==="Enter"&&keyDraft.startsWith("sk-")){localStorage.setItem("c2_ak",keyDraft);setApiKey(keyDraft);setKeyDraft("");setShowKeyEntry(false);setAgentError("");}}}
+            />
+            <button onClick={()=>{if(keyDraft.startsWith("sk-")){localStorage.setItem("c2_ak",keyDraft);setApiKey(keyDraft);setKeyDraft("");setShowKeyEntry(false);setAgentError("");}else setAgentError("Key must start with sk-");}} style={{padding:"6px 12px",background:"#d97706",color:"#fff",border:"none",borderRadius:5,fontFamily:sans,fontSize:10,fontWeight:700,cursor:"pointer"}}>Save</button>
+            {apiKey&&<button onClick={()=>{localStorage.removeItem("c2_ak");setApiKey("");setShowKeyEntry(false);}} style={{padding:"6px 8px",background:"#fee2e2",border:"none",borderRadius:5,fontFamily:sans,fontSize:10,cursor:"pointer",color:"#dc2626"}}>Remove</button>}
+            <button onClick={()=>setShowKeyEntry(false)} style={{padding:"6px 8px",background:"none",border:"1px solid #fbbf24",borderRadius:5,fontFamily:sans,fontSize:10,cursor:"pointer",color:"#92400e"}}>X</button>
+          </div>
+        </div>}
+
         {/* Quick action chips */}
         <div style={{padding:"5px 10px",borderTop:"1px solid #f0ede8",display:"flex",gap:4,flexWrap:"wrap",flexShrink:0}}>
           {["CAC breakdown","Best ROAS","B2B pipeline","Total budget","Timeline","Ramadan plan"].map((s,i)=>(
@@ -650,7 +676,8 @@ Be concise. Use numbers. Answer in context of F&B Egypt turnaround consulting.`;
         </div>
 
         {/* Input bar */}
-        <div style={{padding:"8px 10px",borderTop:"1px solid #f0ede8",display:"flex",gap:6,flexShrink:0}}>
+        <div style={{padding:"8px 10px",borderTop:"1px solid #f0ede8",display:"flex",gap:6,flexShrink:0,alignItems:"center"}}>
+          {apiKey&&<button title="Change/remove API key" onClick={()=>{setShowKeyEntry(true);setKeyDraft("");}} style={{padding:"3px 6px",background:"#f0fdf4",border:"1px solid #86efac",borderRadius:4,cursor:"pointer",fontSize:11,flexShrink:0}}>&#128273;</button>}
           <input value={agentInput} onChange={e=>setAgentInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&!e.shiftKey&&sendMessage()}
             placeholder="Ask or edit: 'set social budget to 20000'…"
             style={{flex:1,padding:"8px 10px",border:"1px solid #e5e1dc",borderRadius:7,fontFamily:sans,fontSize:11,outline:"none",background:"#fafaf8"}}/>
