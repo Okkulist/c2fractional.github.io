@@ -1208,6 +1208,170 @@ const App = function App(){
                   </div>
                 </div>}
 
+                {/* B8 — Ramadan Sales Targets & Commission */}
+                {b.id==="B8"&&(()=>{
+                  const RAM={
+                    "Maadi":     {a2025:5219962, nights2025:30, covers:512},
+                    "Kasr Ainy": {a2025:2825767, nights2025:30, covers:277},
+                    "Arab Mall": {a2025:1519114, nights2025:30, covers:149},
+                    "Concord":   {a2025:5527607, nights2025:30, covers:542},
+                  };
+                  const tot25=Object.values(RAM).reduce((s,r)=>s+r.a2025,0);
+                  const tot26=Math.round(tot25*1.25);
+                  const mgr_base=incentiveInputs.salesMgrBase||15000;
+                  const rep_base=9000;
+                  const tiers=[
+                    {pct:">100%",label:"Exceeds target",mgr:Math.round(mgr_base*0.25),rep:Math.round(rep_base*0.25),bg:"#f0fdf4",bdr:"#bbf7d0",c:"#16653a"},
+                    {pct:"100%", label:"Hits target",   mgr:Math.round(mgr_base*0.20),rep:Math.round(rep_base*0.20),bg:"#eff6ff",bdr:"#bfdbfe",c:"#1e40af"},
+                    {pct:"90%",  label:"Near miss",     mgr:Math.round(mgr_base*0.10),rep:Math.round(rep_base*0.10),bg:"#fffbeb",bdr:"#fde68a",c:"#a16207"},
+                    {pct:"80%",  label:"Partial",       mgr:Math.round(mgr_base*0.05),rep:Math.round(rep_base*0.05),bg:"#fef2f2",bdr:"#fecaca",c:"#dc2626"},
+                  ];
+                  const mgr_max=Math.round(mgr_base*0.25)+25000;
+                  const rep_max=Math.round(rep_base*0.25)+6000;
+                  const team_max=mgr_max+3*rep_max;
+                  return(
+                  <div style={{background:"#fff8f0",border:"1px solid #fed7aa",borderRadius:8,padding:"16px 18px",marginBottom:12}}>
+                    {/* Header */}
+                    <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:14}}>
+                      <span style={{fontSize:16}}>🌙</span>
+                      <div>
+                        <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#c2410c"}}>Ramadan Sales Targets + Commission Plan</div>
+                        <div style={{fontFamily:mono,fontSize:8,color:"#9a3412",letterSpacing:1}}>RAMADAN 2026: FEB 18 – MAR 21 · BASED ON MARCH 2025 ACTUALS +25%</div>
+                      </div>
+                    </div>
+
+                    {/* Ramadan context */}
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:8,marginBottom:14}}>
+                      {[
+                        {l:"Ramadan 2025 Actual",v:`EGP ${tot25.toLocaleString()}`,s:"March 1–30, 2025 (4 branches)",c:"#64748b"},
+                        {l:"Ramadan 2026 Target (+25%)",v:`EGP ${tot26.toLocaleString()}`,s:"Feb 18 – Mar 21, 2026 (32 nights)",c:"#c2410c"},
+                        {l:"Revenue Uplift to Capture",v:`EGP ${(tot26-tot25).toLocaleString()}`,s:`+${Math.round((tot26-tot25)/tot25*100)}% on Ramadan month`,c:"#16653a"},
+                      ].map((s,i)=>(
+                        <div key={i} style={{background:"#fff",borderRadius:7,padding:"10px 12px",border:"1px solid #fed7aa",textAlign:"center"}}>
+                          <div style={{fontFamily:mono,fontSize:7.5,color:"#9a3412",letterSpacing:1,marginBottom:4}}>{s.l.toUpperCase()}</div>
+                          <div style={{fontFamily:disp,fontSize:16,fontWeight:800,color:s.c}}>{s.v}</div>
+                          <div style={{fontFamily:mono,fontSize:8,color:"#aaa",marginTop:2}}>{s.s}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Per-branch targets */}
+                    <div style={{fontFamily:mono,fontSize:8,color:"#9a3412",letterSpacing:1,marginBottom:8,fontWeight:700}}>PER-BRANCH RAMADAN TARGETS (MARCH 2025 → +25% FOR 2026)</div>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:8,marginBottom:14}}>
+                      {Object.entries(RAM).map(([branch,d])=>{
+                        const t26=Math.round(d.a2025*1.25);
+                        const perNight25=Math.round(d.a2025/30);
+                        const perNight26=Math.round(t26/30);
+                        const colors={"Maadi":"#1e40af","Kasr Ainy":"#16653a","Arab Mall":"#7c3aed","Concord":"#c2410c"};
+                        const c=colors[branch]||"#333";
+                        return(
+                          <div key={branch} style={{background:"#fff",borderRadius:8,padding:"12px 13px",border:"1px solid #fed7aa",borderTop:"3px solid "+c}}>
+                            <div style={{fontFamily:mono,fontSize:8,color:c,fontWeight:700,letterSpacing:0.5,marginBottom:6}}>{branch.toUpperCase()}</div>
+                            <div style={{fontFamily:mono,fontSize:7.5,color:"#999",marginBottom:1}}>2025 ACTUAL (MAR)</div>
+                            <div style={{fontFamily:disp,fontSize:13,fontWeight:700,color:"#555",marginBottom:6}}>EGP {d.a2025.toLocaleString()}</div>
+                            <div style={{fontFamily:mono,fontSize:7.5,color:"#9a3412",marginBottom:1}}>2026 TARGET (+25%)</div>
+                            <div style={{fontFamily:disp,fontSize:15,fontWeight:800,color:c,marginBottom:6}}>EGP {t26.toLocaleString()}</div>
+                            <div style={{display:"flex",justifyContent:"space-between",padding:"5px 7px",background:"#fff8f0",borderRadius:4,border:"1px solid #fed7aa"}}>
+                              <div style={{textAlign:"center"}}>
+                                <div style={{fontFamily:mono,fontSize:7,color:"#999"}}>PER NIGHT 2025</div>
+                                <div style={{fontFamily:mono,fontSize:9,fontWeight:700,color:"#888"}}>EGP {perNight25.toLocaleString()}</div>
+                              </div>
+                              <div style={{width:1,background:"#fed7aa"}}/>
+                              <div style={{textAlign:"center"}}>
+                                <div style={{fontFamily:mono,fontSize:7,color:"#9a3412"}}>TARGET/NIGHT</div>
+                                <div style={{fontFamily:mono,fontSize:9,fontWeight:700,color:c}}>EGP {perNight26.toLocaleString()}</div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Commission tiers */}
+                    <div style={{fontFamily:mono,fontSize:8,color:"#9a3412",letterSpacing:1,marginBottom:8,fontWeight:700}}>RAMADAN COMMISSION TIERS (MONTHLY BONUS — BASED ON PDF FRAMEWORK)</div>
+                    <div style={{background:"#fff",border:"1px solid #fed7aa",borderRadius:8,marginBottom:12,overflow:"hidden"}}>
+                      <div style={{display:"grid",gridTemplateColumns:"90px 1fr 110px 110px",gap:0}}>
+                        {/* Header */}
+                        {["TARGET HIT","DESCRIPTION","MGR BONUS\n(EGP 15K BASE)","REP BONUS\n(EGP 9K BASE)"].map((h,i)=>(
+                          <div key={i} style={{padding:"8px 10px",background:"#1c1917",fontFamily:mono,fontSize:7.5,color:"#d4c4a0",fontWeight:700,letterSpacing:1,whiteSpace:"pre"}}>{h}</div>
+                        ))}
+                      </div>
+                      {tiers.map((t,ti)=>(
+                        <div key={ti} style={{display:"grid",gridTemplateColumns:"90px 1fr 110px 110px",gap:0,borderTop:"1px solid #fed7aa",background:t.bg}}>
+                          <div style={{padding:"10px 10px",display:"flex",alignItems:"center"}}>
+                            <span style={{fontFamily:mono,fontSize:12,fontWeight:800,color:t.c}}>{t.pct}</span>
+                          </div>
+                          <div style={{padding:"10px 10px",display:"flex",alignItems:"center"}}>
+                            <span style={{fontFamily:sans,fontSize:10,color:"#555"}}>{t.label}</span>
+                          </div>
+                          <div style={{padding:"10px 10px",display:"flex",alignItems:"center"}}>
+                            <span style={{fontFamily:disp,fontSize:13,fontWeight:800,color:t.c}}>EGP {t.mgr.toLocaleString()}</span>
+                          </div>
+                          <div style={{padding:"10px 10px",display:"flex",alignItems:"center"}}>
+                            <span style={{fontFamily:disp,fontSize:13,fontWeight:800,color:t.c}}>EGP {t.rep.toLocaleString()}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Additional commission components */}
+                    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                      <div style={{background:"#fff",border:"1px solid #fed7aa",borderRadius:8,padding:"12px 14px"}}>
+                        <div style={{fontFamily:mono,fontSize:8,color:"#c2410c",fontWeight:700,letterSpacing:1,marginBottom:8}}>MANAGER — ADDITIONAL UPSIDE</div>
+                        {[
+                          {l:"EBITDA uplift share",v:"2% of group op. profit above target",note:"~EGP 20,000–25,000 if group hits 100%"},
+                          {l:"Eid surge bonus",v:"EGP 5,000 flat",note:"If group exceeds target by >10% in Eid week"},
+                        ].map((r,i)=>(
+                          <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"6px 0",borderBottom:i<1?"1px solid #fed7aa":"none"}}>
+                            <div>
+                              <div style={{fontFamily:mono,fontSize:8,color:"#9a3412",fontWeight:700}}>{r.l.toUpperCase()}</div>
+                              <div style={{fontFamily:sans,fontSize:9.5,color:"#555",marginTop:1}}>{r.note}</div>
+                            </div>
+                            <span style={{fontFamily:mono,fontSize:9,color:"#c2410c",fontWeight:700,flexShrink:0,marginLeft:8}}>{r.v}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{background:"#fff",border:"1px solid #fed7aa",borderRadius:8,padding:"12px 14px"}}>
+                        <div style={{fontFamily:mono,fontSize:8,color:"#c2410c",fontWeight:700,letterSpacing:1,marginBottom:8}}>SALES REPS — ADDITIONAL UPSIDE</div>
+                        {[
+                          {l:"B2B booking commission",v:"EGP 150/booking",note:"Corporate Iftar/Suhoor confirmed bookings"},
+                          {l:"Accelerator (>30 bookings)",v:"EGP 200/booking",note:"Rate upgrades if rep closes 30+ in Ramadan"},
+                        ].map((r,i)=>(
+                          <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",padding:"6px 0",borderBottom:i<1?"1px solid #fed7aa":"none"}}>
+                            <div>
+                              <div style={{fontFamily:mono,fontSize:8,color:"#9a3412",fontWeight:700}}>{r.l.toUpperCase()}</div>
+                              <div style={{fontFamily:sans,fontSize:9.5,color:"#555",marginTop:1}}>{r.note}</div>
+                            </div>
+                            <span style={{fontFamily:mono,fontSize:9,color:"#c2410c",fontWeight:700,flexShrink:0,marginLeft:8}}>{r.v}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Team max exposure summary */}
+                    <div style={{background:"#1c1917",borderRadius:8,padding:"12px 16px",display:"grid",gridTemplateColumns:"1fr 1fr 1fr 1fr",gap:8}}>
+                      {[
+                        {l:"Manager (max)",v:`EGP ${mgr_max.toLocaleString()}`,s:"salary bonus + EBITDA share",c:"#fbbf24"},
+                        {l:"Each Rep (max)",v:`EGP ${rep_max.toLocaleString()}`,s:"salary bonus + B2B commissions",c:"#60a5fa"},
+                        {l:"Team Total (max)",v:`EGP ${team_max.toLocaleString()}`,s:"1 manager + 3 reps",c:"#34d399"},
+                        {l:"Cost vs Uplift",v:`${(team_max/tot25*100/0.25).toFixed(1)}% of uplift`,s:`EGP ${(tot26-tot25).toLocaleString()} incremental rev`,c:"#f87171"},
+                      ].map((s,i)=>(
+                        <div key={i} style={{textAlign:"center"}}>
+                          <div style={{fontFamily:mono,fontSize:7.5,color:"#9ca3af",letterSpacing:1,marginBottom:4}}>{s.l.toUpperCase()}</div>
+                          <div style={{fontFamily:disp,fontSize:15,fontWeight:800,color:s.c}}>{s.v}</div>
+                          <div style={{fontFamily:mono,fontSize:8,color:"#6b7280",marginTop:2}}>{s.s}</div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{fontFamily:mono,fontSize:8,color:"#9a3412",marginTop:10,lineHeight:1.6,opacity:0.8}}>
+                      ⚠ Commission tiers follow the PDF framework: sales-based monthly bonus (% of salary) + performance add-ons. 
+                      Manager base used: EGP {mgr_base.toLocaleString()}/mo. Rep base: EGP {rep_base.toLocaleString()}/mo. 
+                      EBITDA uplift share assumes 30% operating margin on incremental revenue. Adjust via B8 Incentive Inputs above.
+                    </div>
+                  </div>);
+                })()}
+
                 {/* B7 Marketing Funnel Summary */}
                 {b.id==="B7"&&<div style={{background:"#fdf2f8",border:"1px solid #f9a8d4",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
                   <div style={{fontFamily:disp,fontSize:12,fontWeight:700,color:"#be185d",marginBottom:8}}>📊 Funnel Conversion Targets — F&B Egypt Benchmarks</div>
